@@ -352,6 +352,7 @@ export default function Hero(): JSX.Element {
     <>
       <motion.section
         id="hero"
+        aria-label="WalkBuddy hero signup and ZIP availability"
         className="bg-[var(--color-bg)] py-[var(--space-5xl)] text-[var(--color-text)] lg:py-32"
         initial="hidden"
         whileInView="show"
@@ -484,7 +485,7 @@ export default function Hero(): JSX.Element {
             variants={itemVariants}
             custom={0.25}
           >
-            <ProjectImage id="hero" className="w-full h-auto rounded-[var(--radius-md)] shadow-[var(--elev-1)]" />
+            <ProjectImage id="hero" className="h-auto w-full rounded-[var(--radius-md)] shadow-[var(--elev-1)]" />
           </motion.figure>
         </div>
       </motion.section>
