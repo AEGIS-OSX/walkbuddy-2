@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
+import type { ChangeEvent, FormEvent, MouseEvent as ReactMouseEvent } from "react";
 
 type AvailabilityStatus = "served" | "pending";
 
@@ -133,6 +133,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
   const [consent, setConsent] = useState(false);
   const [availability, setAvailability] = useState<AvailabilityStatus | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [error, setError] = useState("");
   const [duplicate, setDuplicate] = useState(false);
 
@@ -145,7 +146,8 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
   const trimmedZip = zip.trim();
   const emailValid = isValidEmail(trimmedEmail);
   const zipValid = isValidZip(trimmedZip);
-  const canSubmit = !loading;
+  const busy = loading || checking;
+  const canSubmit = !busy;
 
   const clearFeedback = useCallback((): void => {
     setError("");
@@ -170,6 +172,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     setZip(normalizeZip(prefillZip));
     setAvailability(null);
     setLoading(false);
+    setChecking(false);
     clearFeedback();
 
     const originalOverflow = document.body.style.overflow;
@@ -241,16 +244,12 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
   }, [closeModal, open]);
 
   function handleOverlayClick(): void {
-    if (!loading) {
+    if (!busy) {
       closeModal();
     }
   }
 
   function stopDialogClick(event: ReactMouseEvent<HTMLDivElement>): void {
-    event.stopPropagation();
-  }
-
-  function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
     event.stopPropagation();
   }
 
@@ -284,14 +283,14 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
       return;
     }
 
-    setLoading(true);
+    setChecking(true);
     clearFeedback();
 
     try {
       await delay(300);
       setAvailability(getLocalAvailability(trimmedZip));
     } finally {
-      setLoading(false);
+      setChecking(false);
     }
   }
 
@@ -393,7 +392,6 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
             exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 }}
             transition={{ duration: prefersReducedMotion ? 0.01 : 0.35, ease: "easeOut" }}
             onClick={stopDialogClick}
-            onKeyDown={handleDialogKeyDown}
           >
             <div className="flex items-start justify-between gap-[var(--space-md)]">
               <div className="min-w-0 space-y-[var(--space-xs)]">
@@ -413,7 +411,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
               <button
                 type="button"
                 aria-label="Close signup modal"
-                disabled={loading}
+                disabled={busy}
                 className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[length:var(--type-sm)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] transition duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
                 onClick={closeModal}
               >
@@ -438,7 +436,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                   autoComplete="email"
                   placeholder="you@example.com"
                   value={email}
-                  disabled={loading}
+                  disabled={busy}
                   className="field w-full"
                   onChange={handleEmailChange}
                 />
@@ -458,7 +456,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                     autoComplete="postal-code"
                     placeholder="ZIP code"
                     value={zip}
-                    disabled={loading}
+                    disabled={busy}
                     className="field w-full"
                     onChange={handleZipChange}
                   />
@@ -472,7 +470,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                     autoComplete="given-name"
                     placeholder="First name"
                     value={name}
-                    disabled={loading}
+                    disabled={busy}
                     className="field w-full"
                     onChange={handleNameChange}
                   />
@@ -484,7 +482,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                   type="checkbox"
                   required
                   checked={consent}
-                  disabled={loading}
+                  disabled={busy}
                   aria-describedby={statusId}
                   className="mt-[var(--space-xxs)] min-h-4 min-w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
                   onChange={handleConsentChange}
@@ -507,13 +505,13 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
 
                 <motion.button
                   type="button"
-                  disabled={loading}
+                  disabled={busy}
                   className="btn-secondary inline-flex w-full items-center justify-center sm:w-auto"
-                  whileHover={loading ? undefined : { scale: 1.02 }}
-                  whileTap={loading ? undefined : { scale: 0.98 }}
+                  whileHover={busy ? undefined : { scale: 1.02 }}
+                  whileTap={busy ? undefined : { scale: 0.98 }}
                   onClick={handleAvailabilityCheck}
                 >
-                  {loading ? checkingLabel : "Check availability"}
+                  {checking ? checkingLabel : "Check availability"}
                 </motion.button>
               </div>
 
@@ -523,7 +521,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                 aria-live="polite"
                 aria-atomic="true"
               >
-                {loading ? (
+                {busy ? (
                   <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)]">
                     <div className="h-2 w-2/3 rounded-[var(--radius-round)] bg-[var(--color-accent)] opacity-70"></div>
                     <p className="mt-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
