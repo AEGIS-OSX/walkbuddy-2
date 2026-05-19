@@ -1,31 +1,31 @@
 {
   "hero": {
-    "url": "",
-    "alt": "",
+    "url": "https://zkvkbpxrxnfynqqeytke.supabase.co/storage/v1/object/public/marketing-assets/walkbuddy-2/cleo/1779153298594-hero.png",
+    "alt": "Eye-level medium shot of a friendly walker and dog on an Austin sidewalk with a rounded hero card showing the Rubik headline, warm yellow CTA, and soft green pricing tag—reflects the brand's friendly,",
     "width": 1920,
     "height": 1080
   },
   "feature_1": {
-    "url": "",
-    "alt": "",
+    "url": "https://zkvkbpxrxnfynqqeytke.supabase.co/storage/v1/object/public/marketing-assets/walkbuddy-2/cleo/1779153452247-feature_1.png",
+    "alt": "Overhead three-panel visual illustrating Book → Walk → Report: mobile screens and a walker in motion using warm yellow CTAs and soft green highlights to match the brand tone and make the flow scannabl",
     "width": 800,
     "height": 600
   },
   "feature_2": {
-    "url": "",
-    "alt": "",
+    "url": "https://zkvkbpxrxnfynqqeytke.supabase.co/storage/v1/object/public/marketing-assets/walkbuddy-2/cleo/1779153580021-feature_2.png",
+    "alt": "Low-angle portrait of a walker with a dog with a rounded profile card in the foreground showing name, rating, and verified badge—supports trust and the 'real walker' requirement while matching the war",
     "width": 800,
     "height": 600
   },
   "feature_3": {
-    "url": "",
-    "alt": "",
+    "url": "https://zkvkbpxrxnfynqqeytke.supabase.co/storage/v1/object/public/marketing-assets/walkbuddy-2/cleo/1779153069687-feature_3.png",
+    "alt": "Feature image 3: walker profile card portrait with verified badge and dog portrait overlay; designed for the 'walker preview' feature and matches brand palette and Rubik heading space.",
     "width": 800,
     "height": 600
   },
   "social_proof": {
-    "url": "",
-    "alt": "",
+    "url": "https://zkvkbpxrxnfynqqeytke.supabase.co/storage/v1/object/public/marketing-assets/walkbuddy-2/cleo/1779153223207-social_proof.png",
+    "alt": "Social proof image: editorial montage of candid dog and walker photos plus a verified-quote card with warm yellow accent and soft green badges. Designed to sit behind or beside testimonial text and re",
     "width": 1200,
     "height": 800
   }
