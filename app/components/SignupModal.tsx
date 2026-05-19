@@ -8,6 +8,10 @@ type AvailabilityStatus = "served" | "pending";
 
 type ModalView = "form" | "loading" | "served" | "pending";
 
+type UtmParams = {
+  [key: string]: string;
+};
+
 type SignupResponse = {
   availability_status?: AvailabilityStatus;
   pricing_range?: string;
@@ -21,7 +25,7 @@ type SignupPayload = {
   email: string;
   zip: string;
   consent: true;
-  utm: Record<string, string>;
+  utm: UtmParams;
   source: "landing";
   name?: string;
 };
@@ -78,9 +82,9 @@ function parseSignupResponse(value: unknown): SignupResponse {
   };
 }
 
-function readUtmParams(): Record<string, string> {
+function readUtmParams(): UtmParams {
   const params = new URLSearchParams(window.location.search);
-  const utm: Record<string, string> = {};
+  const utm: UtmParams = {};
 
   params.forEach((value, key) => {
     if (key.startsWith("utm_") || key === "source") {
@@ -102,26 +106,26 @@ function getFocusableElements(container: HTMLElement | null): HTMLElement[] {
   }
 
   const selector = "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex=\"-1\"])";
-  return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter((element) => {
-    return element.offsetParent !== null || element === document.activeElement;
+  return Array.from(container.querySelectorAll(selector)).filter((element): element is HTMLElement => {
+    return element instanceof HTMLElement && (element.offsetParent !== null || element === document.activeElement);
   });
 }
 
 export default function SignupModal(): JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
-  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
+  const [portalTarget, setPortalTarget] = useState(null as HTMLElement | null);
   const [email, setEmail] = useState("");
   const [zip, setZip] = useState("");
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
-  const [view, setView] = useState<ModalView>("form");
+  const [view, setView] = useState("form" as ModalView);
   const [message, setMessage] = useState("");
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const emailRef = useRef<HTMLInputElement | null>(null);
-  const zipRef = useRef<HTMLInputElement | null>(null);
-  const consentRef = useRef<HTMLInputElement | null>(null);
+  const cardRef = useRef(null as HTMLDivElement | null);
+  const emailRef = useRef(null as HTMLInputElement | null);
+  const zipRef = useRef(null as HTMLInputElement | null);
+  const consentRef = useRef(null as HTMLInputElement | null);
 
   useEffect(() => {
     setPortalTarget(document.body);
@@ -141,8 +145,7 @@ export default function SignupModal(): JSX.Element {
 
   useEffect(() => {
     const openModal = (event: Event): void => {
-      const customEvent = event as CustomEvent<ModalPrefill | undefined>;
-      const prefill = customEvent.detail;
+      const prefill = (event as CustomEvent).detail as ModalPrefill | undefined;
 
       setEmail(prefill?.email ?? "");
       setZip(prefill?.zip ?? "");
@@ -216,7 +219,7 @@ export default function SignupModal(): JSX.Element {
     setMessage(availabilityStatus === "served" ? SUCCESS_MESSAGE : PENDING_MESSAGE);
   };
 
-  const submitSignup = async (): Promise<void> => {
+  const submitSignup = async () => {
     if (!validateForm()) {
       setView("form");
       return;
@@ -264,18 +267,18 @@ export default function SignupModal(): JSX.Element {
     }
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: React.FormEvent): void => {
     event.preventDefault();
     void submitSignup();
   };
 
-  const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>): void => {
+  const handleOverlayClick = (event: React.MouseEvent): void => {
     if (event.target === event.currentTarget) {
       closeModal();
     }
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>): void => {
+  const handleKeyDown = (event: React.KeyboardEvent): void => {
     if (event.key === "Escape") {
       event.preventDefault();
       closeModal();
