@@ -15,14 +15,23 @@ type MarketingSignupResponse = {
 const zipPattern = /^\d{5}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const childMotion = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 }
-};
+const staggerContainer = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.08
+    }
+  }
+} as const;
 
-function getChildTransition(delay: number) {
-  return { duration: 0.52, ease: "easeOut", delay };
-}
+const staggerChild = {
+  hidden: { opacity: 0, y: 24 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.52, ease: "easeOut" }
+  }
+} as const;
 
 export default function Hero() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -146,11 +155,16 @@ export default function Hero() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         aria-labelledby="hero-heading"
       >
-        <div className="flex flex-col items-start justify-center">
+        <motion.div
+          className="flex flex-col items-start justify-center"
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+        >
           <motion.p
             className="mb-4 inline-flex rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)] shadow-[var(--elev-1)]"
-            {...childMotion}
-            transition={getChildTransition(0)}
+            variants={staggerChild}
           >
             Background-checked walkers — GPS recaps — Photo proof.
           </motion.p>
@@ -158,32 +172,28 @@ export default function Hero() {
           <motion.h1
             id="hero-heading"
             className="max-w-[12ch] font-[family-name:var(--font-display)] text-[28px] font-bold leading-[36px] tracking-[-0.04em] text-[var(--color-text)] md:text-[40px] md:leading-[48px]"
-            {...childMotion}
-            transition={getChildTransition(0.08)}
+            variants={staggerChild}
           >
             Trusted local dog walks, on your schedule.
           </motion.h1>
 
           <motion.p
             className="mt-5 max-w-[34rem] font-[family-name:var(--font-body)] text-[15px] leading-[22px] text-[var(--color-text)] md:text-[16px] md:leading-[24px]"
-            {...childMotion}
-            transition={getChildTransition(0.16)}
+            variants={staggerChild}
           >
             Book a vetted local walker, see photos and live GPS.
           </motion.p>
 
           <motion.p
             className="mt-4 inline-flex rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
-            {...childMotion}
-            transition={getChildTransition(0.24)}
+            variants={staggerChild}
           >
             Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
           </motion.p>
 
           <motion.div
             className="mt-7 flex w-full flex-col gap-3 sm:flex-row sm:items-center"
-            {...childMotion}
-            transition={getChildTransition(0.32)}
+            variants={staggerChild}
           >
             <motion.button
               type="button"
@@ -210,8 +220,7 @@ export default function Hero() {
               event.preventDefault();
               handleQuickCheck();
             }}
-            {...childMotion}
-            transition={getChildTransition(0.4)}
+            variants={staggerChild}
           >
             <div className="flex flex-col gap-3 sm:flex-row">
               <label className="sr-only" htmlFor="hero-zip">
@@ -237,7 +246,7 @@ export default function Hero() {
                 disabled={quickStatus === "checking"}
                 className="h-11 rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-5 font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Check availability
+                {quickStatus === "checking" ? "Checking ZIP..." : "Check availability"}
               </motion.button>
             </div>
             <div id="hero-zip-helper" className="mt-3 font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">
@@ -267,7 +276,7 @@ export default function Hero() {
               ) : null}
             </div>
           </motion.form>
-        </div>
+        </motion.div>
 
         <motion.div
           className="flex items-center"
