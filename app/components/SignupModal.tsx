@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent, MouseEvent as ReactMouseEvent } from "react";
+import type { ChangeEvent, CSSProperties, FormEvent, MouseEvent as ReactMouseEvent } from "react";
 
 type AvailabilityStatus = "served" | "pending";
 
@@ -52,6 +52,115 @@ const focusableSelector = [
   "textarea:not([disabled])",
   "[tabindex]:not([tabindex=\"-1\")]",
 ].join(", ");
+
+const tokenStyles = {
+  overlay: {
+    fontFamily: "var(--font-body)",
+    color: "var(--color-text)",
+    padding: "var(--space-lg) var(--space-md)",
+  },
+  card: {
+    padding: "var(--space-xl)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--color-bg)",
+    color: "var(--color-text)",
+  },
+  titleWrap: {
+    gap: "var(--space-md)",
+  },
+  copyStack: {
+    gap: "var(--space-xs)",
+  },
+  eyebrow: {
+    color: "var(--color-muted)",
+  },
+  title: {
+    fontFamily: "var(--font-display)",
+    fontSize: "var(--type-md)",
+    fontWeight: "var(--font-weight-semibold)",
+    lineHeight: "30px",
+    letterSpacing: "-0.02em",
+    color: "var(--color-text)",
+  },
+  closeButton: {
+    borderRadius: "var(--radius-round)",
+    borderColor: "var(--color-border)",
+    backgroundColor: "var(--color-bg)",
+    color: "var(--color-text)",
+    fontSize: "var(--type-sm)",
+    fontWeight: "var(--font-weight-medium)",
+  },
+  form: {
+    marginTop: "var(--space-lg)",
+    gap: "var(--space-md)",
+  },
+  fieldGrid: {
+    gap: "var(--space-md)",
+  },
+  consent: {
+    gap: "var(--space-sm)",
+    borderRadius: "var(--radius-md)",
+    borderColor: "var(--color-border)",
+    backgroundColor: "var(--color-bg)",
+    padding: "var(--space-md)",
+    fontSize: "var(--type-xs)",
+    lineHeight: "18px",
+    color: "var(--color-text)",
+  },
+  checkbox: {
+    marginTop: "var(--space-xxs)",
+    borderRadius: "var(--radius-sm)",
+    borderColor: "var(--color-border)",
+    backgroundColor: "var(--color-bg)",
+    accentColor: "var(--color-accent)",
+  },
+  buttonRow: {
+    gap: "var(--space-sm)",
+  },
+  statusArea: {
+    minHeight: "5rem",
+    gap: "var(--space-sm)",
+  },
+  statusBox: {
+    borderRadius: "var(--radius-md)",
+    borderColor: "var(--color-border)",
+    backgroundColor: "var(--color-bg)",
+    padding: "var(--space-md)",
+  },
+  statusSmallBox: {
+    borderRadius: "var(--radius-md)",
+    borderColor: "var(--color-border)",
+    backgroundColor: "var(--color-bg)",
+    padding: "var(--space-sm)",
+    fontSize: "var(--type-xs)",
+    lineHeight: "18px",
+    color: "var(--color-text)",
+  },
+  skeleton: {
+    width: "66%",
+    height: "0.5rem",
+    borderRadius: "var(--radius-round)",
+    backgroundColor: "var(--color-accent)",
+    opacity: 0.7,
+  },
+  mutedText: {
+    marginTop: "var(--space-sm)",
+    fontSize: "var(--type-xs)",
+    lineHeight: "18px",
+    color: "var(--color-muted)",
+  },
+  chipRow: {
+    gap: "var(--space-sm)",
+  },
+  followUp: {
+    borderRadius: "var(--radius-sm)",
+    color: "var(--color-text)",
+    fontSize: "var(--type-xs)",
+    fontWeight: "var(--font-weight-semibold)",
+    lineHeight: "18px",
+    textDecorationColor: "var(--color-border)",
+  },
+} satisfies Record<string, CSSProperties>;
 
 function normalizeZip(value: string): string {
   return value.replace(/\D/g, "").slice(0, 5);
@@ -121,7 +230,7 @@ function emitSignupSuccess(zip: string, availability: AvailabilityStatus): void 
   );
 }
 
-export default function SignupModal({ open, onClose, prefillZip = "" }: SignupModalProps): React.JSX.Element {
+export default function SignupModal({ open, onClose, prefillZip = "" }: SignupModalProps) {
   const prefersReducedMotion = useReducedMotion();
   const titleId = useId();
   const descriptionId = useId();
@@ -372,7 +481,8 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-black/40 px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
+          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-black/40"
+          style={tokenStyles.overlay}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -386,24 +496,26 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
             tabIndex={-1}
-            className="card relative w-full max-w-[540px] overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-bg)] p-[var(--space-xl)] outline-none"
+            className="card relative w-full max-w-[540px] overflow-hidden outline-none"
+            style={tokenStyles.card}
             initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 }}
             transition={{ duration: prefersReducedMotion ? 0.01 : 0.35, ease: "easeOut" }}
             onClick={stopDialogClick}
           >
-            <div className="flex items-start justify-between gap-[var(--space-md)]">
-              <div className="min-w-0 space-y-[var(--space-xs)]">
+            <div className="flex items-start justify-between" style={tokenStyles.titleWrap}>
+              <div className="flex min-w-0 flex-col" style={tokenStyles.copyStack}>
                 <p
                   id={descriptionId}
-                  className="eyebrow text-[var(--color-muted)]"
+                  className="eyebrow"
+                  style={tokenStyles.eyebrow}
                 >
                   WalkBuddy early access
                 </p>
                 <h2
                   id={titleId}
-                  className="font-[family-name:var(--font-display)] text-[length:var(--type-md)] font-[var(--font-weight-semibold)] leading-[30px] tracking-[-0.02em] text-[var(--color-text)] sm:text-[length:var(--type-lg)] sm:leading-[36px]"
+                  style={tokenStyles.title}
                 >
                   Check availability
                 </h2>
@@ -412,7 +524,8 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                 type="button"
                 aria-label="Close signup modal"
                 disabled={busy}
-                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[length:var(--type-sm)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] transition duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center border leading-none transition duration-200 ease-out hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
+                style={tokenStyles.closeButton}
                 onClick={closeModal}
               >
                 ×
@@ -420,7 +533,8 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
             </div>
 
             <form
-              className="mt-[var(--space-lg)] space-y-[var(--space-md)]"
+              className="flex flex-col"
+              style={tokenStyles.form}
               noValidate
               onSubmit={handleSubmit}
             >
@@ -442,7 +556,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                 />
               </label>
 
-              <div className="grid gap-[var(--space-md)] sm:grid-cols-[1fr_1fr]">
+              <div className="grid sm:grid-cols-[1fr_1fr]" style={tokenStyles.fieldGrid}>
                 <label className="block">
                   <span className="sr-only">ZIP code</span>
                   <input
@@ -477,22 +591,23 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                 </label>
               </div>
 
-              <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+              <label className="flex items-start border" style={tokenStyles.consent}>
                 <input
                   type="checkbox"
                   required
                   checked={consent}
                   disabled={busy}
                   aria-describedby={statusId}
-                  className="mt-[var(--space-xxs)] min-h-4 min-w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="min-h-4 min-w-4 border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 disabled:cursor-not-allowed disabled:opacity-60"
+                  style={tokenStyles.checkbox}
                   onChange={handleConsentChange}
                 />
-                <span className="block text-[var(--color-text)]">
+                <span className="block" style={{ color: "var(--color-text)" }}>
                   I agree to receive WalkBuddy availability and early access emails.
                 </span>
               </label>
 
-              <div className="flex flex-col gap-[var(--space-sm)] sm:flex-row sm:items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center" style={tokenStyles.buttonRow}>
                 <motion.button
                   type="submit"
                   disabled={!canSubmit}
@@ -517,39 +632,41 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
 
               <div
                 id={statusId}
-                className="min-h-20 space-y-[var(--space-sm)]"
+                className="flex flex-col"
+                style={tokenStyles.statusArea}
                 aria-live="polite"
                 aria-atomic="true"
               >
                 {busy ? (
-                  <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)]">
-                    <div className="h-2 w-2/3 rounded-[var(--radius-round)] bg-[var(--color-accent)] opacity-70"></div>
-                    <p className="mt-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
+                  <div className="border" style={tokenStyles.statusBox}>
+                    <div style={tokenStyles.skeleton}></div>
+                    <p style={tokenStyles.mutedText}>
                       Checking ZIP...
                     </p>
                   </div>
                 ) : null}
 
                 {error ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+                  <p className="border" style={tokenStyles.statusSmallBox}>
                     {error}
                   </p>
                 ) : null}
 
                 {duplicate ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+                  <p className="border" style={tokenStyles.statusSmallBox}>
                     This ZIP and email are already on our list. We just sent a confirmation.
                   </p>
                 ) : null}
 
                 {availability ? (
                   <motion.div
-                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)]"
+                    className="border"
+                    style={tokenStyles.statusBox}
                     initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: prefersReducedMotion ? 0.01 : 0.22, ease: "easeOut" }}
                   >
-                    <div className="flex flex-wrap items-center gap-[var(--space-sm)]">
+                    <div className="flex flex-wrap items-center" style={tokenStyles.chipRow}>
                       <span className={availability === "served" ? "chip-success" : "chip-pending"}>
                         {availability === "served" ? successChip : pendingChip}
                       </span>
@@ -557,13 +674,14 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                       {availability === "served" ? (
                         <a
                           href="/thank-you?availability_status=served"
-                          className="rounded-[var(--radius-sm)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4 transition duration-200 ease-out hover:decoration-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
+                          className="underline underline-offset-4 transition duration-200 ease-out hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4"
+                          style={tokenStyles.followUp}
                         >
                           View booking details
                         </a>
                       ) : null}
                     </div>
-                    <p className="mt-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
+                    <p style={tokenStyles.mutedText}>
                       {availability === "served" ? successMessage : pendingMessage}
                     </p>
                   </motion.div>
