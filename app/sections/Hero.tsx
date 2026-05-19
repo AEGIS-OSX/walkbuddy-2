@@ -1,18 +1,12 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
-import { type FormEvent, type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { type FormEvent, useEffect, useId, useRef, useState } from "react";
 import { ProjectImage } from "@/app/components/ProjectImage";
 
 type AvailabilityStatus = "served" | "pending";
 
-type InlineResult = Readonly<{
-  status: AvailabilityStatus;
-  chip: string;
-  message: string;
-}>;
-
-type ModalResult = Readonly<{
+type AvailabilityResult = Readonly<{
   status: AvailabilityStatus;
   chip: string;
   message: string;
@@ -45,18 +39,18 @@ const CHECKING_LABEL = "Checking ZIP...";
 const SUCCESS_CHIP = "Service available";
 const SUCCESS_INLINE_MESSAGE = "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
 const PENDING_CHIP = "Join city waitlist";
-const PENDING_INLINE_MESSAGE = `We’re not live in this ZIP yet. Join early access and we will notify you when we expand.`;
+const PENDING_INLINE_MESSAGE = "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
 const MODAL_TITLE = "Check availability";
 const EMAIL_PLACEHOLDER = "you@example.com";
 const MODAL_VALIDATION = "Please enter a valid email and a 5-digit ZIP code.";
 const DUPLICATE_NOTICE = "This ZIP and email are already on our list. We just sent a confirmation.";
 const MODAL_SUCCESS_MESSAGE = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
-const MODAL_PENDING_MESSAGE = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
+const MODAL_PENDING_MESSAGE = "We’re not live yet. Join early access and we’ll notify you when we expand.";
 const SUCCESS_FOLLOW_UP = "View booking details";
 const CONSENT_COPY = "I agree to receive WalkBuddy availability and waitlist emails.";
 
 const sectionVariants: Variants = {
-  hidden: { opacity: 0, y: 40 },
+  hidden: { opacity: 0, y: 36 },
   show: {
     opacity: 1,
     y: 0,
@@ -70,12 +64,12 @@ const sectionVariants: Variants = {
 
 const itemVariants: Variants = {
   hidden: { opacity: 0, y: 16 },
-  show: (delay: number = 0) => ({
+  show: (delay = 0) => ({
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.45,
       delay,
+      duration: 0.42,
       ease: "easeOut",
     },
   }),
@@ -87,7 +81,7 @@ const modalPanelVariants: Variants = {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: { duration: 0.28, ease: "easeOut" },
+    transition: { duration: 0.24, ease: "easeOut" },
   },
 };
 
@@ -95,40 +89,20 @@ function getAvailability(zip: string): AvailabilityStatus {
   return AUSTIN_CORE_ZIPS.has(zip) ? "served" : "pending";
 }
 
-function getInlineResult(zip: string): InlineResult {
+function getInlineResult(zip: string): AvailabilityResult {
   const status = getAvailability(zip);
 
-  if (status === "served") {
-    return {
-      status,
-      chip: SUCCESS_CHIP,
-      message: SUCCESS_INLINE_MESSAGE,
-    };
-  }
-
-  return {
-    status,
-    chip: PENDING_CHIP,
-    message: PENDING_INLINE_MESSAGE,
-  };
+  return status === "served"
+    ? { status, chip: SUCCESS_CHIP, message: SUCCESS_INLINE_MESSAGE }
+    : { status, chip: PENDING_CHIP, message: PENDING_INLINE_MESSAGE };
 }
 
-function getModalResult(zip: string): ModalResult {
+function getModalResult(zip: string): AvailabilityResult {
   const status = getAvailability(zip);
 
-  if (status === "served") {
-    return {
-      status,
-      chip: SUCCESS_CHIP,
-      message: MODAL_SUCCESS_MESSAGE,
-    };
-  }
-
-  return {
-    status,
-    chip: PENDING_CHIP,
-    message: MODAL_PENDING_MESSAGE,
-  };
+  return status === "served"
+    ? { status, chip: SUCCESS_CHIP, message: MODAL_SUCCESS_MESSAGE }
+    : { status, chip: PENDING_CHIP, message: MODAL_PENDING_MESSAGE };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -139,8 +113,6 @@ function getResponseStatus(value: unknown): MarketingResponse {
   if (!isRecord(value)) {
     return {};
   }
-
-  const response: MarketingResponse = {};
 
   if (value.availability_status === "served" || value.availability_status === "pending") {
     return { availability_status: value.availability_status };
@@ -154,7 +126,7 @@ function getResponseStatus(value: unknown): MarketingResponse {
     return { duplicate: true };
   }
 
-  return response;
+  return {};
 }
 
 function waitForAvailability(): Promise<void> {
@@ -164,19 +136,19 @@ function waitForAvailability(): Promise<void> {
 }
 
 export default function Hero(): JSX.Element {
-  const [inlineZip, setInlineZip] = useState<string>("");
-  const [inlineTouched, setInlineTouched] = useState<boolean>(false);
-  const [inlineChecking, setInlineChecking] = useState<boolean>(false);
-  const [inlineResult, setInlineResult] = useState<InlineResult | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [modalEmail, setModalEmail] = useState<string>("");
-  const [modalZip, setModalZip] = useState<string>("");
-  const [modalName, setModalName] = useState<string>("");
-  const [modalConsent, setModalConsent] = useState<boolean>(false);
-  const [modalSubmitting, setModalSubmitting] = useState<boolean>(false);
-  const [modalError, setModalError] = useState<string>("");
-  const [modalDuplicate, setModalDuplicate] = useState<boolean>(false);
-  const [modalResult, setModalResult] = useState<ModalResult | null>(null);
+  const [inlineZip, setInlineZip] = useState("");
+  const [inlineTouched, setInlineTouched] = useState(false);
+  const [inlineChecking, setInlineChecking] = useState(false);
+  const [inlineResult, setInlineResult] = useState<AvailabilityResult | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalEmail, setModalEmail] = useState("");
+  const [modalZip, setModalZip] = useState("");
+  const [modalName, setModalName] = useState("");
+  const [modalConsent, setModalConsent] = useState(false);
+  const [modalSubmitting, setModalSubmitting] = useState(false);
+  const [modalError, setModalError] = useState("");
+  const [modalDuplicate, setModalDuplicate] = useState(false);
+  const [modalResult, setModalResult] = useState<AvailabilityResult | null>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
   const descriptionId = useId();
@@ -245,7 +217,7 @@ export default function Hero(): JSX.Element {
     setModalDuplicate(false);
     setModalResult(null);
 
-    if (!EMAIL_PATTERN.test(modalEmail) || !ZIP_PATTERN.test(modalZip) || !modalConsent) {
+    if (!modalConsent || !EMAIL_PATTERN.test(modalEmail) || !ZIP_PATTERN.test(modalZip)) {
       setModalError(MODAL_VALIDATION);
       return;
     }
@@ -256,7 +228,7 @@ export default function Hero(): JSX.Element {
     const payload = {
       email: modalEmail,
       zip: modalZip,
-      name: modalName.trim().length > 0 ? modalName : undefined,
+      name: modalName.trim().length > 0 ? modalName.trim() : undefined,
       consent: true,
       source: "landing",
     };
@@ -270,9 +242,7 @@ export default function Hero(): JSX.Element {
 
       const response = await fetch("/api/marketing-signups", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -311,7 +281,6 @@ export default function Hero(): JSX.Element {
 
     SUBMITTED_SIGNUPS.add(signupKey);
     setModalResult(getModalResult(modalZip));
-    setModalSubmitting(false);
   }
 
   async function handleModalSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -320,90 +289,64 @@ export default function Hero(): JSX.Element {
     setModalSubmitting(false);
   }
 
-  function handleModalKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (event.key !== "Tab") {
-      return;
-    }
-
-    const focusableElements = event.currentTarget.querySelectorAll<HTMLElement>(
-      "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])",
-    );
-
-    if (focusableElements.length === 0) {
-      return;
-    }
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey && document.activeElement === firstElement) {
-      event.preventDefault();
-      lastElement.focus();
-      return;
-    }
-
-    if (!event.shiftKey && document.activeElement === lastElement) {
-      event.preventDefault();
-      firstElement.focus();
-    }
-  }
+  const handleSecondaryModalCheck = (): void => {
+    void submitModal().finally(() => setModalSubmitting(false));
+  };
 
   return (
     <>
       <motion.section
         id="hero"
         aria-label="WalkBuddy hero signup and ZIP availability"
-        className="bg-[var(--color-bg)] py-[var(--space-5xl)] text-[var(--color-text)] lg:py-32"
+        className="overflow-hidden py-24 text-left lg:py-32"
+        style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-100px" }}
         variants={sectionVariants}
       >
-        <div className="mx-auto grid w-full max-w-screen-xl grid-cols-1 gap-[var(--space-lg)] px-[var(--space-md)] md:px-[var(--space-lg)] lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] lg:items-center lg:gap-[var(--space-xl)]">
-          <div className="flex max-w-xl flex-col gap-[var(--space-md)]">
-            <motion.p
-              className="sr-only font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]"
-              variants={itemVariants}
-              custom={0}
-            >
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 px-4 md:px-6 lg:grid-cols-2 lg:gap-12">
+          <div className="flex max-w-xl flex-col gap-4">
+            <motion.p className="sr-only" variants={itemVariants} custom={0}>
               WalkBuddy Austin early access
             </motion.p>
             <motion.h1
-              className="font-[family-name:var(--font-display)] text-[length:var(--type-lg)] font-[var(--font-weight-bold)] leading-9 tracking-[-0.03em] text-[var(--color-text)] lg:text-[length:var(--type-xxl)] lg:leading-[3rem]"
+              className="text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl"
+              style={{ fontFamily: "var(--font-display)", lineHeight: 1.15, color: "var(--color-text)" }}
               variants={itemVariants}
               custom={0.05}
             >
               {HERO_HEADLINE}
             </motion.h1>
             <motion.p
-              className="max-w-lg font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-medium)] leading-[22px] text-[var(--color-text)] lg:text-base lg:leading-6"
+              className="max-w-lg text-base font-medium"
+              style={{ fontFamily: "var(--font-body)", lineHeight: "24px", color: "var(--color-text)" }}
               variants={itemVariants}
               custom={0.15}
             >
               {HERO_SUBHEADLINE}
             </motion.p>
             <motion.p
-              className="font-[family-name:var(--font-body)] text-sm font-[var(--font-weight-medium)] leading-5 text-[var(--color-muted)]"
+              className="text-sm font-medium"
+              style={{ fontFamily: "var(--font-body)", lineHeight: "20px", color: "var(--color-muted)" }}
               variants={itemVariants}
               custom={0.25}
             >
               {HERO_PRICING}
             </motion.p>
             <motion.p
-              className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]"
+              className="text-xs"
+              style={{ fontFamily: "var(--font-body)", lineHeight: "18px", color: "var(--color-muted)" }}
               variants={itemVariants}
               custom={0.3}
             >
               {TRUST_ROW}
             </motion.p>
-            <motion.div
-              className="flex flex-col gap-[var(--space-sm)] pt-[var(--space-xs)] sm:flex-row sm:items-center"
-              variants={itemVariants}
-              custom={0.35}
-            >
+            <motion.div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center" variants={itemVariants} custom={0.35}>
               <motion.button
                 type="button"
-                className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-sm font-[var(--font-weight-semibold)] leading-5 text-[var(--color-cta-text)] shadow-[var(--elev-1)] transition-shadow duration-200 ease-out hover:shadow-[var(--elev-2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] sm:w-auto lg:h-14"
+                className="inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-sm font-semibold shadow-sm transition-shadow duration-200 ease-out hover:shadow-md focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 sm:w-auto lg:h-14"
+                style={{ backgroundColor: "var(--color-cta-bg)", color: "var(--color-cta-text)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                 onClick={() => openModal()}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -412,20 +355,22 @@ export default function Hero(): JSX.Element {
               </motion.button>
               <a
                 href="#how-it-works"
-                className="inline-flex h-12 items-center justify-center rounded-[var(--radius-md)] px-[var(--space-sm)] font-[family-name:var(--font-display)] text-sm font-[var(--font-weight-medium)] leading-5 text-[var(--color-text)] underline decoration-[var(--color-accent)] decoration-2 underline-offset-4 transition-colors duration-200 ease-out hover:text-[var(--color-success)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] lg:h-14"
+                className="inline-flex h-12 items-center justify-center rounded-xl px-4 text-sm font-medium underline decoration-2 underline-offset-4 transition-colors duration-200 ease-out focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 lg:h-14"
+                style={{ color: "var(--color-text)", textDecorationColor: "var(--color-accent)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
               >
                 {SECONDARY_CTA}
               </a>
             </motion.div>
             <motion.form
-              className="flex flex-col gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)] shadow-[var(--elev-1)] sm:max-w-xl"
+              className="flex flex-col gap-3 rounded-xl border p-4 shadow-sm sm:max-w-xl"
+              style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }}
               onSubmit={handleInlineSubmit}
               variants={itemVariants}
               custom={0.45}
               noValidate
             >
-              <div className="flex flex-col gap-[var(--space-sm)] sm:flex-row">
-                <div className="flex min-w-0 flex-1 flex-col gap-[var(--space-xs)]">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <label className="sr-only" htmlFor="hero-zip">
                     {ZIP_LABEL}
                   </label>
@@ -442,12 +387,14 @@ export default function Hero(): JSX.Element {
                     placeholder={ZIP_PLACEHOLDER}
                     aria-invalid={inlineZipIsInvalid}
                     aria-describedby={inlineStatusId}
-                    className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)]"
+                    className="h-11 w-full rounded-xl border px-4 text-base focus:outline focus:outline-4 focus:outline-offset-0"
+                    style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", outlineColor: "var(--color-accent)" }}
                   />
                 </div>
                 <motion.button
                   type="submit"
-                  className="inline-flex h-11 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-sm font-[var(--font-weight-semibold)] leading-5 text-[var(--color-cta-text)] shadow-[var(--elev-1)] transition-shadow duration-200 ease-out hover:shadow-[var(--elev-2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-36"
+                  className="inline-flex h-11 items-center justify-center rounded-xl px-6 text-sm font-semibold shadow-sm transition-shadow duration-200 ease-out hover:shadow-md focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-36"
+                  style={{ backgroundColor: "var(--color-cta-bg)", color: "var(--color-cta-text)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                   disabled={inlineChecking}
                   aria-busy={inlineChecking}
                   whileHover={{ scale: 1.02 }}
@@ -456,50 +403,43 @@ export default function Hero(): JSX.Element {
                   {inlineChecking ? CHECKING_LABEL : CHECK_AVAILABILITY}
                 </motion.button>
               </div>
-              <div id={inlineStatusId} className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]" aria-live="polite">
+              <div id={inlineStatusId} className="text-xs" style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)", lineHeight: "18px" }} aria-live="polite">
                 {inlineZipIsInvalid ? INLINE_VALIDATION : INLINE_HELPER}
               </div>
               {inlineResult ? (
-                <div className="flex flex-col gap-[var(--space-xs)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-sm)]">
-                  <div className="flex flex-wrap items-center gap-[var(--space-xs)]">
-                    <span className="inline-flex min-h-7 items-center rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-accent-text)]">
+                <div className="flex flex-col gap-2 rounded-xl border p-3" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex min-h-7 items-center rounded-full px-3 text-xs font-medium" style={{ backgroundColor: "var(--color-accent)", color: "var(--color-accent-text)", fontFamily: "var(--font-body)" }}>
                       {inlineResult.chip}
                     </span>
                     <button
                       type="button"
-                      className="rounded-[var(--radius-round)] px-[var(--space-xs)] font-[family-name:var(--font-display)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-text)] underline decoration-[var(--color-accent)] decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                      className="rounded-full px-2 text-xs font-semibold underline decoration-2 underline-offset-4 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2"
+                      style={{ color: "var(--color-text)", textDecorationColor: "var(--color-accent)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                       onClick={() => openModal(inlineZip)}
                     >
                       {PRIMARY_CTA}
                     </button>
                   </div>
-                  <p className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+                  <p className="text-xs" style={{ color: "var(--color-text)", fontFamily: "var(--font-body)", lineHeight: "18px" }}>
                     {inlineResult.message}
                   </p>
                 </div>
               ) : null}
             </motion.form>
           </div>
-          <motion.figure
-            className="w-full justify-self-center lg:max-w-md lg:justify-self-end"
-            variants={itemVariants}
-            custom={0.25}
-          >
-            <ProjectImage id="hero" className="h-auto w-full rounded-[var(--radius-md)] shadow-[var(--elev-1)]" />
+          <motion.figure className="w-full justify-self-center lg:max-w-md lg:justify-self-end" variants={itemVariants} custom={0.25}>
+            <ProjectImage id="hero" className="block h-auto w-full rounded-xl shadow-sm" />
           </motion.figure>
         </div>
       </motion.section>
 
       {isModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-[var(--space-md)]" role="presentation">
-          <button
-            type="button"
-            aria-label="Close availability modal"
-            className="absolute inset-0 cursor-default bg-[color-mix(in_srgb,var(--color-text)_32%,transparent)]"
-            onClick={closeModal}
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="presentation">
+          <button type="button" aria-label="Close availability modal" className="absolute inset-0 cursor-default" style={{ backgroundColor: "color-mix(in srgb, var(--color-text) 32%, transparent)" }} onClick={closeModal} />
           <motion.div
-            className="relative max-h-[min(90vh,44rem)] w-full max-w-lg overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-lg)] text-[var(--color-text)] shadow-[var(--elev-2)] md:p-[var(--space-xl)]"
+            className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border p-6 shadow-md md:p-8"
+            style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -507,44 +447,43 @@ export default function Hero(): JSX.Element {
             initial="hidden"
             animate="show"
             variants={modalPanelVariants}
-            onKeyDown={handleModalKeyDown}
           >
-            <div className="flex items-start justify-between gap-[var(--space-md)]">
-              <div className="flex flex-col gap-[var(--space-xs)]">
-                <h2 id={titleId} className="font-[family-name:var(--font-display)] text-[length:var(--type-md)] font-[var(--font-weight-semibold)] leading-[30px] text-[var(--color-text)]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-2">
+                <h2 id={titleId} className="text-2xl font-semibold" style={{ fontFamily: "var(--font-display)", color: "var(--color-text)", lineHeight: "30px" }}>
                   {MODAL_TITLE}
                 </h2>
-                <p id={descriptionId} className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
+                <p id={descriptionId} className="text-xs" style={{ fontFamily: "var(--font-body)", color: "var(--color-muted)", lineHeight: "18px" }}>
                   Enter your email and ZIP to join early access.
                 </p>
               </div>
               <button
                 type="button"
-                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--space-xs)] font-[family-name:var(--font-display)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full border px-2 text-xs font-medium focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2"
+                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                 onClick={closeModal}
               >
                 Close
               </button>
             </div>
-            <form className="mt-[var(--space-lg)] flex flex-col gap-[var(--space-md)]" onSubmit={handleModalSubmit} noValidate>
-              <div className="flex flex-col gap-[var(--space-xs)]">
-                <label className="sr-only" htmlFor="modal-email">
-                  Email
-                </label>
-                <input
-                  ref={emailInputRef}
-                  id="modal-email"
-                  type="email"
-                  autoComplete="email"
-                  value={modalEmail}
-                  onChange={(event) => setModalEmail(event.target.value.trim())}
-                  placeholder={EMAIL_PLACEHOLDER}
-                  aria-invalid={modalError.length > 0 && !EMAIL_PATTERN.test(modalEmail)}
-                  className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)]"
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-[var(--space-md)] sm:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
-                <div className="flex flex-col gap-[var(--space-xs)]">
+            <form className="mt-6 flex flex-col gap-4" onSubmit={handleModalSubmit} noValidate>
+              <label className="sr-only" htmlFor="modal-email">
+                Email
+              </label>
+              <input
+                ref={emailInputRef}
+                id="modal-email"
+                type="email"
+                autoComplete="email"
+                value={modalEmail}
+                onChange={(event) => setModalEmail(event.target.value.trim())}
+                placeholder={EMAIL_PLACEHOLDER}
+                aria-invalid={modalError.length > 0 && !EMAIL_PATTERN.test(modalEmail)}
+                className="h-11 w-full rounded-xl border px-4 text-base focus:outline focus:outline-4 focus:outline-offset-0"
+                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", outlineColor: "var(--color-accent)" }}
+              />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
                   <label className="sr-only" htmlFor="modal-name">
                     Name
                   </label>
@@ -555,10 +494,11 @@ export default function Hero(): JSX.Element {
                     value={modalName}
                     onChange={(event) => setModalName(event.target.value)}
                     placeholder="First name"
-                    className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)]"
+                    className="h-11 w-full rounded-xl border px-4 text-base focus:outline focus:outline-4 focus:outline-offset-0"
+                    style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", outlineColor: "var(--color-accent)" }}
                   />
                 </div>
-                <div className="flex flex-col gap-[var(--space-xs)]">
+                <div>
                   <label className="sr-only" htmlFor="modal-zip">
                     {ZIP_LABEL}
                   </label>
@@ -570,44 +510,47 @@ export default function Hero(): JSX.Element {
                     onChange={(event) => setModalZip(event.target.value.trim())}
                     placeholder={ZIP_PLACEHOLDER}
                     aria-invalid={modalError.length > 0 && !ZIP_PATTERN.test(modalZip)}
-                    className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)]"
+                    className="h-11 w-full rounded-xl border px-4 text-base focus:outline focus:outline-4 focus:outline-offset-0"
+                    style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-body)", outlineColor: "var(--color-accent)" }}
                   />
                 </div>
               </div>
-              <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+              <label className="flex items-start gap-3 rounded-xl border p-3 text-xs" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)", fontFamily: "var(--font-body)", lineHeight: "18px" }}>
                 <input
                   type="checkbox"
                   checked={modalConsent}
                   onChange={(event) => setModalConsent(event.target.checked)}
                   aria-invalid={modalError.length > 0 && !modalConsent}
-                  className="mt-[var(--space-xxs)] h-4 w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] accent-[var(--color-cta-bg)] focus:outline-none focus:ring-4 focus:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)]"
+                  className="mt-1 h-4 w-4 rounded border focus:outline focus:outline-4 focus:outline-offset-2"
+                  style={{ accentColor: "var(--color-cta-bg)", outlineColor: "var(--color-accent)" }}
                 />
                 <span>{CONSENT_COPY}</span>
               </label>
               {modalError.length > 0 ? (
-                <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)]" role="alert">
+                <p className="rounded-xl border p-3 text-xs font-medium" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)", fontFamily: "var(--font-body)", lineHeight: "18px" }} role="alert">
                   {modalError}
                 </p>
               ) : null}
               {modalDuplicate ? (
-                <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)]" role="status">
+                <p className="rounded-xl border p-3 text-xs font-medium" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text)", fontFamily: "var(--font-body)", lineHeight: "18px" }} role="status">
                   {DUPLICATE_NOTICE}
                 </p>
               ) : null}
               {modalResult ? (
-                <div id={modalStatusId} className="flex flex-col gap-[var(--space-xs)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)]" role="status" aria-live="polite">
-                  <span className="inline-flex w-fit min-h-7 items-center rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-accent-text)]">
+                <div id={modalStatusId} className="flex flex-col gap-2 rounded-xl border p-3" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)" }} role="status" aria-live="polite">
+                  <span className="inline-flex w-fit min-h-7 items-center rounded-full px-3 text-xs font-medium" style={{ backgroundColor: "var(--color-accent)", color: "var(--color-accent-text)", fontFamily: "var(--font-body)" }}>
                     {modalResult.chip}
                   </span>
-                  <p className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+                  <p className="text-xs" style={{ color: "var(--color-text)", fontFamily: "var(--font-body)", lineHeight: "18px" }}>
                     {modalResult.message}
                   </p>
                 </div>
               ) : null}
-              <div className="flex flex-col gap-[var(--space-sm)] sm:flex-row">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <motion.button
                   type="submit"
-                  className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-sm font-[var(--font-weight-semibold)] leading-5 text-[var(--color-cta-text)] shadow-[var(--elev-1)] transition-shadow duration-200 ease-out hover:shadow-[var(--elev-2)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-70 lg:h-14"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl px-6 text-sm font-semibold shadow-sm transition-shadow duration-200 ease-out hover:shadow-md focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-14"
+                  style={{ backgroundColor: "var(--color-cta-bg)", color: "var(--color-cta-text)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                   disabled={modalSubmitting}
                   aria-busy={modalSubmitting}
                   whileHover={{ scale: 1.02 }}
@@ -617,12 +560,11 @@ export default function Hero(): JSX.Element {
                 </motion.button>
                 <motion.button
                   type="button"
-                  className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-sm font-[var(--font-weight-semibold)] leading-5 text-[var(--color-text)] shadow-[var(--elev-1)] transition-shadow duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-70 lg:h-14"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl border px-6 text-sm font-semibold shadow-sm transition-shadow duration-200 ease-out hover:shadow-md focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-70 lg:h-14"
+                  style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)", color: "var(--color-text)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                   disabled={modalSubmitting}
                   aria-busy={modalSubmitting}
-                  onClick={() => {
-                    void submitModal().finally(() => setModalSubmitting(false));
-                  }}
+                  onClick={handleSecondaryModalCheck}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -632,7 +574,8 @@ export default function Hero(): JSX.Element {
               {modalResult ? (
                 <a
                   href="#pricing"
-                  className="inline-flex min-h-11 items-center justify-center rounded-[var(--radius-md)] px-[var(--space-md)] font-[family-name:var(--font-display)] text-sm font-[var(--font-weight-semibold)] leading-5 text-[var(--color-text)] underline decoration-[var(--color-accent)] decoration-2 underline-offset-4 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[color-mix(in_srgb,var(--color-accent)_18%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold underline decoration-2 underline-offset-4 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2"
+                  style={{ color: "var(--color-text)", textDecorationColor: "var(--color-accent)", fontFamily: "var(--font-display)", outlineColor: "var(--color-accent)" }}
                 >
                   {SUCCESS_FOLLOW_UP}
                 </a>
