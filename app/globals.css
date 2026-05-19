@@ -164,6 +164,73 @@ canvas {
   border: 0;
 }
 
+.focus-ring {
+  outline: 4px solid rgba(168,230,207,0.18);
+  outline-offset: 2px;
+}
+
+.focus-ring:focus {
+  outline: 4px solid rgba(168,230,207,0.18);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 4px solid rgba(168,230,207,0.18);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--radius-round);
+  font: var(--font-body) 13px/18px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.chip--success {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+}
+
+.section-pad {
+  padding-top: var(--space-4xl);
+  padding-bottom: var(--space-4xl);
+}
+
+@media (min-width: 768px) {
+  .section-pad {
+    padding-top: var(--space-5xl);
+    padding-bottom: var(--space-5xl);
+  }
+}
+
+[data-reduced-motion="true"] * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.btn-reset {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -287,19 +354,6 @@ canvas {
 }
 
 /* Chips */
-.chip {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 var(--space-sm);
-  border-radius: var(--radius-round);
-  font: var(--font-body) 13px/18px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.chip--success,
 .chip-success {
   background: var(--color-accent);
   color: var(--color-accent-text);
@@ -311,40 +365,10 @@ canvas {
   border: 1px solid var(--color-border);
 }
 
-/* Focus ring */
-.focus-ring {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-}
-
-.focus-ring:focus {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-
-.focus-ring:focus-visible {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-
 /* Sections */
 .section {
   padding-top: var(--space-5xl);
   padding-bottom: var(--space-5xl);
-}
-
-.section-pad {
-  padding-top: var(--space-4xl);
-  padding-bottom: var(--space-4xl);
-}
-
-@media (min-width: 768px) {
-  .section-pad {
-    padding-top: var(--space-5xl);
-    padding-bottom: var(--space-5xl);
-  }
 }
 
 @media (min-width: 1024px) {
@@ -368,97 +392,4 @@ canvas {
     transition: none;
     transform: none !important;
   }
-}
-
-[data-reduced-motion="true"] * {
-  transition: none !important;
-  animation: none !important;
-}
-
-.btn-reset {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-}
-
-/* Utility extensions */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
-.focus-ring {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-}
-
-.focus-ring:focus {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-
-.focus-ring:focus-visible {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-  box-shadow: none;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 var(--space-sm);
-  border-radius: var(--radius-round);
-  font: var(--font-body) 13px/18px;
-  background: var(--color-surface);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.chip--success {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-}
-
-.container {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding-left: var(--space-lg);
-  padding-right: var(--space-lg);
-}
-
-.section-pad {
-  padding-top: var(--space-4xl);
-  padding-bottom: var(--space-4xl);
-}
-
-@media (min-width: 768px) {
-  .section-pad {
-    padding-top: var(--space-5xl);
-    padding-bottom: var(--space-5xl);
-  }
-}
-
-[data-reduced-motion="true"] * {
-  transition: none !important;
-  animation: none !important;
-}
-
-.btn-reset {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  font: inherit;
-  color: inherit;
 }
