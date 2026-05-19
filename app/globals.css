@@ -131,7 +131,7 @@ canvas {
 
   .btn-primary:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(168,230,207,0.18);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent);
   }
 
   .btn-primary:active {
@@ -165,7 +165,7 @@ canvas {
   .btn-secondary:focus-visible {
     outline: none;
     border-color: var(--color-accent);
-    box-shadow: 0 0 0 4px rgba(168,230,207,0.18);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 18%, transparent);
   }
 
   .btn-secondary:active {
