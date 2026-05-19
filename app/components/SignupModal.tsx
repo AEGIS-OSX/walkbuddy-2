@@ -24,7 +24,7 @@ type SignupResponse = {
 type SignupPayload = {
   email: string;
   zip: string;
-  consent: true;
+  consent: boolean;
   utm: UtmParams;
   source: "landing";
   name?: string;
@@ -49,8 +49,6 @@ const SUCCESS_MESSAGE = "Great. WalkBuddy serves your ZIP. You will receive a co
 const PENDING_CHIP = "Join city waitlist";
 const PENDING_MESSAGE = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
 const FOLLOW_UP_CTA = "View booking details";
-const SERVED_PRICING_LINE = "Estimated price per 30-min walk: $18–$25.";
-const SERVED_CONFIRMATION_NOTE = "Confirmation email on its way in ~5 minutes.";
 const CONSENT_LABEL = "I agree to receive updates and marketing emails.";
 const NAME_PLACEHOLDER = "First name";
 
@@ -126,6 +124,7 @@ export default function SignupModal(): JSX.Element {
   const emailRef = useRef(null as HTMLInputElement | null);
   const zipRef = useRef(null as HTMLInputElement | null);
   const consentRef = useRef(null as HTMLInputElement | null);
+  const previouslyFocusedElementRef = useRef(null as HTMLElement | null);
 
   useEffect(() => {
     setPortalTarget(document.body);
@@ -145,7 +144,8 @@ export default function SignupModal(): JSX.Element {
 
   useEffect(() => {
     const openModal = (event: Event): void => {
-      const prefill = (event as CustomEvent).detail as ModalPrefill | undefined;
+      const prefill = (event as CustomEvent<ModalPrefill>).detail;
+      previouslyFocusedElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
       setEmail(prefill?.email ?? "");
       setZip(prefill?.zip ?? "");
@@ -180,12 +180,18 @@ export default function SignupModal(): JSX.Element {
     };
   }, [isOpen]);
 
+  const restoreFocus = (): void => {
+    previouslyFocusedElementRef.current?.focus();
+    previouslyFocusedElementRef.current = null;
+  };
+
   const closeModal = (): void => {
     if (view === "loading") {
       return;
     }
 
     setIsOpen(false);
+    window.setTimeout(restoreFocus, 0);
   };
 
   const validateForm = (): boolean => {
@@ -219,7 +225,7 @@ export default function SignupModal(): JSX.Element {
     setMessage(availabilityStatus === "served" ? SUCCESS_MESSAGE : PENDING_MESSAGE);
   };
 
-  const submitSignup = async () => {
+  const submitSignup = async (): Promise<void> => {
     if (!validateForm()) {
       setView("form");
       return;
@@ -385,20 +391,16 @@ export default function SignupModal(): JSX.Element {
               {isServed ? SUCCESS_MESSAGE : PENDING_MESSAGE}
             </p>
             {isServed ? (
-              <div className="mt-[var(--space-sm)] space-y-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
-                <p>{SERVED_PRICING_LINE}</p>
-                <p>{SERVED_CONFIRMATION_NOTE}</p>
-                <motion.button
-                  type="button"
-                  whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
-                  whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  onClick={() => window.location.assign("/thank-you")}
-                  className="mt-[var(--space-sm)] inline-flex h-12 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] focus-visible:outline-none"
-                >
-                  {FOLLOW_UP_CTA}
-                </motion.button>
-              </div>
+              <motion.button
+                type="button"
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.02 }}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                onClick={() => window.location.assign("/thank-you")}
+                className="mt-[var(--space-md)] inline-flex h-12 items-center justify-center rounded-[var(--radius-md)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] focus-visible:outline-none"
+              >
+                {FOLLOW_UP_CTA}
+              </motion.button>
             ) : null}
           </div>
         ) : (
@@ -406,7 +408,7 @@ export default function SignupModal(): JSX.Element {
             <div className="space-y-[var(--space-xs)]">
               <label
                 htmlFor="signup-email"
-                className="block font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[20px] text-[var(--color-text)]"
+                className="block font-[family-name:var(--font-body)] text-[length:var(--type-sm)] font-medium leading-[20px] text-[var(--color-text)]"
               >
                 Email
               </label>
@@ -423,14 +425,14 @@ export default function SignupModal(): JSX.Element {
                 onChange={(event) => setEmail(event.currentTarget.value)}
                 disabled={isLoading}
                 aria-describedby="signup-modal-status"
-                className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
 
             <div className="space-y-[var(--space-xs)]">
               <label
                 htmlFor="signup-zip"
-                className="block font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[20px] text-[var(--color-text)]"
+                className="block font-[family-name:var(--font-body)] text-[length:var(--type-sm)] font-medium leading-[20px] text-[var(--color-text)]"
               >
                 ZIP code
               </label>
@@ -448,14 +450,14 @@ export default function SignupModal(): JSX.Element {
                 onChange={(event) => setZip(event.currentTarget.value.replace(/\D/g, "").slice(0, 5))}
                 disabled={isLoading}
                 aria-describedby="signup-modal-status"
-                className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
 
             <div className="space-y-[var(--space-xs)]">
               <label
                 htmlFor="signup-name"
-                className="block font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[20px] text-[var(--color-text)]"
+                className="block font-[family-name:var(--font-body)] text-[length:var(--type-sm)] font-medium leading-[20px] text-[var(--color-text)]"
               >
                 First name
               </label>
@@ -468,7 +470,7 @@ export default function SignupModal(): JSX.Element {
                 value={name}
                 onChange={(event) => setName(event.currentTarget.value)}
                 disabled={isLoading}
-                className="h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
 
@@ -504,7 +506,7 @@ export default function SignupModal(): JSX.Element {
                 whileHover={prefersReducedMotion || isLoading ? undefined : { scale: 1.02 }}
                 whileTap={prefersReducedMotion || isLoading ? undefined : { scale: 0.98 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
-                className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
               >
                 {SECONDARY_BUTTON_LABEL}
               </motion.button>
