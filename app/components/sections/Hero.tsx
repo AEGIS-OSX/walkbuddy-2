@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import { motion } from "framer-motion";
 import { ProjectImage } from "@/app/components/ProjectImage";
 import SignupModal from "@/app/components/SignupModal";
@@ -70,7 +71,7 @@ export default function Hero(): JSX.Element {
   });
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  async function handleZipSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleZipSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     const normalizedZip = zip.trim();
@@ -132,7 +133,7 @@ export default function Hero(): JSX.Element {
       <div className="mx-auto grid max-w-screen-xl gap-[var(--space-3xl)] lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] lg:items-center">
         <div className="flex flex-col items-start gap-[var(--space-lg)]">
           <motion.p
-            className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[1.4] tracking-[0.04em] text-[var(--color-muted)]"
+            className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[1.4] tracking-[0.04em] text-[var(--color-muted)]"
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -142,7 +143,7 @@ export default function Hero(): JSX.Element {
           </motion.p>
 
           <motion.h1
-            className="max-w-[14ch] font-[family-name:var(--font-display)] text-[length:var(--type-lg)] font-bold leading-[1.28] text-[var(--color-text)] md:text-[length:var(--type-xxl)] md:leading-[1.15]"
+            className="max-w-[14ch] font-[family-name:var(--font-display)] text-[length:var(--type-lg)] font-[var(--font-weight-bold)] leading-[1.28] text-[var(--color-text)] lg:text-[length:var(--type-xxl)] lg:leading-[1.15]"
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -152,7 +153,7 @@ export default function Hero(): JSX.Element {
           </motion.h1>
 
           <motion.p
-            className="max-w-[34rem] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-normal leading-[1.47] text-[var(--color-text)] md:text-[1rem] md:leading-[1.5]"
+            className="max-w-[34rem] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-regular)] leading-[1.47] text-[var(--color-text)]"
             initial={{ opacity: 0, y: 18 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -162,7 +163,7 @@ export default function Hero(): JSX.Element {
           </motion.p>
 
           <motion.p
-            className="rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-normal leading-[1.38] text-[var(--color-muted)] shadow-[var(--elev-1)]"
+            className="rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-regular)] leading-[1.38] text-[var(--color-muted)] shadow-[var(--elev-1)]"
             initial={{ opacity: 0, y: 14 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -181,7 +182,7 @@ export default function Hero(): JSX.Element {
             <div className="flex w-full flex-col gap-[var(--space-sm)] sm:flex-row sm:items-center">
               <motion.button
                 type="button"
-                className="min-h-[3rem] w-full rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-semibold leading-none text-[var(--color-cta-text)] shadow-[var(--elev-1)] outline-none transition-shadow duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] md:min-h-[3.5rem] sm:w-auto sm:min-w-[8.75rem]"
+                className="min-h-[3rem] w-full rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-semibold)] leading-none text-[var(--color-cta-text)] shadow-[var(--elev-1)] outline-none transition-shadow duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:w-auto sm:min-w-[8.75rem] md:min-h-[3.5rem]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
@@ -193,7 +194,7 @@ export default function Hero(): JSX.Element {
 
               <motion.a
                 href="#how-it-works"
-                className="inline-flex min-h-[3rem] items-center justify-center rounded-[var(--radius-md)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-none text-[var(--color-text)] outline-none transition-colors duration-200 ease-out hover:text-[var(--color-accent-text)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] md:min-h-[3.5rem] sm:justify-start"
+                className="inline-flex min-h-[3rem] items-center justify-center rounded-[var(--radius-md)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] outline-none transition-colors duration-200 ease-out hover:text-[var(--color-accent-text)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:justify-start md:min-h-[3.5rem]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
@@ -218,15 +219,15 @@ export default function Hero(): JSX.Element {
                   autoComplete="postal-code"
                   placeholder="78701"
                   value={zip}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => setZip(event.target.value)}
-                  className="min-h-[2.75rem] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-normal leading-[1.47] text-[var(--color-text)] outline-none transition-shadow duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:flex-[1_1_62%]"
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setZip(event.target.value)}
+                  className="min-h-[2.75rem] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-regular)] leading-[1.47] text-[var(--color-text)] outline-none transition-shadow duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:flex-[1_1_62%]"
                   aria-describedby="hero-zip-status"
                   aria-invalid={zipStatus.status === "error"}
                   disabled={zipStatus.status === "checking"}
                 />
                 <motion.button
                   type="submit"
-                  className="min-h-[2.75rem] rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-semibold leading-none text-[var(--color-cta-text)] outline-none transition-opacity duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-[0_0_auto]"
+                  className="min-h-[2.75rem] rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-none text-[var(--color-cta-text)] outline-none transition-opacity duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-[0_0_auto]"
                   whileHover={zipStatus.status === "checking" ? undefined : { scale: 1.02 }}
                   whileTap={zipStatus.status === "checking" ? undefined : { scale: 0.98 }}
                   transition={{ duration: 0.15, ease: "easeOut" }}
@@ -243,7 +244,7 @@ export default function Hero(): JSX.Element {
               >
                 {hasChip ? (
                   <span
-                    className="inline-flex w-fit rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] py-[var(--space-xxs)] font-medium text-[var(--color-accent-text)]"
+                    className="inline-flex w-fit rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-accent)] px-[var(--space-sm)] py-[var(--space-xxs)] font-[var(--font-weight-medium)] text-[var(--color-accent-text)]"
                     role="status"
                   >
                     {zipStatus.chip}
@@ -268,7 +269,7 @@ export default function Hero(): JSX.Element {
         </motion.div>
       </div>
 
-      {isModalOpen ? <SignupModal initialZip={zip.trim()}></SignupModal> : null}
+      {isModalOpen ? <SignupModal initialZip={zip.trim()} /> : null}
     </motion.section>
   );
 }
