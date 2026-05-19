@@ -126,7 +126,7 @@ export default function Hero(): JSX.Element {
                 aria-describedby="hero-zip-helper hero-zip-status"
                 aria-invalid={error ? "true" : "false"}
                 className="min-h-[44px] flex-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] shadow-[var(--elev-1)] outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus-visible:ring-4 focus-visible:ring-[color:var(--color-accent)]"
-              />
+              ></input>
               <button
                 type="submit"
                 disabled={isChecking}
@@ -201,7 +201,7 @@ export default function Hero(): JSX.Element {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="w-full"
         >
-          <ProjectImage id="hero" className="w-full h-auto rounded-[var(--radius-md)] shadow-[var(--elev-2)]" />
+          <ProjectImage id="hero" className="w-full h-auto rounded-[var(--radius-md)] shadow-[var(--elev-2)]"></ProjectImage>
         </motion.div>
       </div>
     </motion.section>
