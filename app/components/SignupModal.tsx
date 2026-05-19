@@ -27,7 +27,7 @@ type SignupPayload = {
   consent: boolean;
   utm: UtmParams;
   source: "landing";
-  name?: string;
+  name: string;
 };
 
 type ModalPrefill = {
@@ -49,8 +49,7 @@ const SUCCESS_MESSAGE = "Great. WalkBuddy serves your ZIP. You will receive a co
 const PENDING_CHIP = "Join city waitlist";
 const PENDING_MESSAGE = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
 const FOLLOW_UP_CTA = "View booking details";
-const CONSENT_LABEL = "I agree to receive updates and marketing emails.";
-const NAME_PLACEHOLDER = "First name";
+const CONSENT_LABEL = "By joining the waitlist you agree to receive marketing emails. You can unsubscribe at any time.";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const zipPattern = /^\d{5}$/;
@@ -120,11 +119,11 @@ export default function SignupModal(): JSX.Element {
   const [message, setMessage] = useState("");
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const cardRef = useRef(null as HTMLDivElement | null);
-  const emailRef = useRef(null as HTMLInputElement | null);
-  const zipRef = useRef(null as HTMLInputElement | null);
-  const consentRef = useRef(null as HTMLInputElement | null);
-  const previouslyFocusedElementRef = useRef(null as HTMLElement | null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const zipRef = useRef<HTMLInputElement>(null);
+  const consentRef = useRef<HTMLInputElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setPortalTarget(document.body);
@@ -241,7 +240,7 @@ export default function SignupModal(): JSX.Element {
       consent: true,
       utm: readUtmParams(),
       source: "landing",
-      ...(trimmedName ? { name: trimmedName } : {}),
+      name: trimmedName,
     };
 
     try {
@@ -466,7 +465,6 @@ export default function SignupModal(): JSX.Element {
                 name="name"
                 type="text"
                 autoComplete="given-name"
-                placeholder={NAME_PLACEHOLDER}
                 value={name}
                 onChange={(event) => setName(event.currentTarget.value)}
                 disabled={isLoading}
