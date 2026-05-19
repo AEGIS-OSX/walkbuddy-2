@@ -1,129 +1,240 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { FormEvent, useEffect, useRef, useState } from "react";
 import { ProjectImage } from "@/app/components/ProjectImage";
+import { motion } from "framer-motion";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 
-type QuickCheckStatus = "idle" | "checking" | "invalid" | "served" | "pending";
-type ModalStatus = "idle" | "loading" | "served" | "pending" | "duplicate" | "error";
+type AvailabilityStatus = "served" | "pending" | "duplicate";
+type InlineStatus = "idle" | "invalid" | "checking" | "served" | "pending";
+type ModalStatus = "idle" | "checking" | "served" | "pending" | "duplicate" | "error";
 
-type MarketingSignupResponse = {
-  availability_status?: "served" | "pending";
-  error?: string;
+type MarketingSignupPayload = {
+  email: string;
+  zip: string;
+  name?: string;
+  consent: true;
+  utm?: Record<string, string>;
+  source: "landing";
 };
 
-const zipPattern = /^\d{5}$/;
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+type MarketingSignupResponse = {
+  availability_status?: AvailabilityStatus;
+  earliest_beta?: string;
+  pricing_range?: string;
+};
 
-const staggerContainer = {
-  hidden: {},
-  show: {
-    transition: {
-      staggerChildren: 0.08
+const ZIP_PATTERN = /^\d{5}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const FOCUSABLE_SELECTOR = "a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])";
+
+function getOptimisticAvailability(zip: string): Exclude<AvailabilityStatus, "duplicate"> {
+  return zip.startsWith("787") || zip === "73301" ? "served" : "pending";
+}
+
+function getUtmParams(): Record<string, string> | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const utm: Record<string, string> = {};
+
+  params.forEach((value: string, key: string) => {
+    if (key.startsWith("utm_") && value.trim().length > 0) {
+      utm[key] = value;
     }
-  }
-} as const;
+  });
 
-const staggerChild = {
-  hidden: { opacity: 0, y: 24 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.52, ease: "easeOut" }
-  }
-} as const;
+  return Object.keys(utm).length > 0 ? utm : undefined;
+}
 
 export default function Hero() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [quickZip, setQuickZip] = useState("");
-  const [quickStatus, setQuickStatus] = useState<QuickCheckStatus>("idle");
-  const [email, setEmail] = useState("");
-  const [modalZip, setModalZip] = useState("");
+  const [zipValue, setZipValue] = useState<string>("");
+  const [inlineStatus, setInlineStatus] = useState<InlineStatus>("idle");
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [modalEmail, setModalEmail] = useState<string>("");
+  const [modalZip, setModalZip] = useState<string>("");
+  const [modalName, setModalName] = useState<string>("");
+  const [modalConsent, setModalConsent] = useState<boolean>(false);
   const [modalStatus, setModalStatus] = useState<ModalStatus>("idle");
-  const [modalError, setModalError] = useState("");
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [modalError, setModalError] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const inlineCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const isInlineInvalid = inlineStatus === "invalid";
+  const isModalValidationError = modalError === "Please enter a valid email and a 5-digit ZIP code.";
+  const isModalSuccess = modalStatus === "served" || modalStatus === "pending";
+
+  useEffect(() => {
+    return () => {
+      if (inlineCheckTimeoutRef.current) {
+        clearTimeout(inlineCheckTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isModalOpen) {
-      return;
+      return undefined;
     }
 
+    const modalNode = modalRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
-    function handleKeyDown(event: KeyboardEvent) {
+    const handleKeyDown = (event: globalThis.KeyboardEvent): void => {
       if (event.key === "Escape") {
-        setIsModalOpen(false);
+        event.preventDefault();
+        closeModal();
+        return;
       }
-    }
 
-    window.addEventListener("keydown", handleKeyDown);
+      if (event.key !== "Tab" || !modalNode) {
+        return;
+      }
+
+      const focusableElements = Array.from(modalNode.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        modalNode.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      }
+
+      if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isModalOpen]);
 
-  function openModal() {
-    setModalError("");
-    setModalStatus("idle");
-    setModalZip(zipPattern.test(quickZip) ? quickZip : "");
-    setIsModalOpen(true);
-  }
-
-  function closeModal() {
-    setIsModalOpen(false);
-  }
-
-  function handleQuickCheck() {
-    const normalizedZip = quickZip.trim();
-    setQuickZip(normalizedZip);
-
-    if (!zipPattern.test(normalizedZip)) {
-      setQuickStatus("invalid");
+  function closeModal(): void {
+    if (isSubmitting) {
       return;
     }
 
-    setQuickStatus("checking");
-
-    window.setTimeout(() => {
-      setQuickStatus(normalizedZip.startsWith("787") ? "served" : "pending");
-    }, 450);
+    setIsModalOpen(false);
+    setModalError("");
+    setModalStatus("idle");
   }
 
-  async function submitModal(event: FormEvent<HTMLFormElement>) {
+  function openModal(): void {
+    if (ZIP_PATTERN.test(zipValue)) {
+      setModalZip(zipValue);
+    }
+
+    setIsModalOpen(true);
+    setModalError("");
+    setModalStatus("idle");
+  }
+
+  function handleInlineZipChange(value: string): void {
+    setZipValue(value);
+    if (inlineStatus !== "idle") {
+      setInlineStatus("idle");
+    }
+  }
+
+  function handleInlineZipSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedZip = modalZip.trim();
+    if (inlineCheckTimeoutRef.current) {
+      clearTimeout(inlineCheckTimeoutRef.current);
+    }
 
-    if (!emailPattern.test(normalizedEmail) || !zipPattern.test(normalizedZip)) {
+    if (!ZIP_PATTERN.test(zipValue)) {
+      setInlineStatus("invalid");
+      return;
+    }
+
+    setInlineStatus("checking");
+    inlineCheckTimeoutRef.current = setTimeout(() => {
+      setInlineStatus(getOptimisticAvailability(zipValue));
+      setModalZip(zipValue);
+    }, 500);
+  }
+
+  function handleModalSecondaryCheck(): void {
+    if (!ZIP_PATTERN.test(modalZip)) {
       setModalStatus("error");
       setModalError("Please enter a valid email and a 5-digit ZIP code.");
       return;
     }
 
-    setModalStatus("loading");
+    setModalError("");
+    setModalStatus("checking");
+    setTimeout(() => {
+      setModalStatus(getOptimisticAvailability(modalZip));
+    }, 400);
+  }
+
+  async function handleModalSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+
+    const email = modalEmail.trim();
+    const zip = modalZip.trim();
+    const name = modalName.trim();
+
+    if (!EMAIL_PATTERN.test(email) || !ZIP_PATTERN.test(zip) || !modalConsent) {
+      setModalStatus("error");
+      setModalError("Please enter a valid email and a 5-digit ZIP code.");
+      return;
+    }
+
+    const payload: MarketingSignupPayload = {
+      email,
+      zip,
+      consent: true,
+      source: "landing",
+    };
+
+    if (name.length > 0) {
+      payload.name = name;
+    }
+
+    const utm = getUtmParams();
+    if (utm) {
+      payload.utm = utm;
+    }
+
+    setIsSubmitting(true);
+    setModalStatus("checking");
     setModalError("");
 
     try {
       const response = await fetch("/api/marketing-signups", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: normalizedEmail,
-          zip: normalizedZip,
-          source: "hero-modal"
-        })
+        body: JSON.stringify(payload),
       });
 
-      const data = (await response.json()) as MarketingSignupResponse;
+      let data: MarketingSignupResponse = {};
+      try {
+        data = (await response.json()) as MarketingSignupResponse;
+      } catch {
+        data = {};
+      }
 
-      if (response.status === 409) {
+      if (response.status === 409 || data.availability_status === "duplicate") {
         setModalStatus("duplicate");
         setModalError("This ZIP and email are already on our list. We just sent a confirmation.");
         return;
@@ -131,316 +242,384 @@ export default function Hero() {
 
       if (!response.ok) {
         setModalStatus("error");
-        setModalError(data.error === "Please enter a valid email and a 5-digit ZIP code." ? data.error : "Please enter a valid email and a 5-digit ZIP code.");
+        setModalError("Something went wrong. Please try again.");
         return;
       }
 
-      setModalStatus(data.availability_status === "served" ? "served" : "pending");
+      const availabilityStatus = data.availability_status === "served" || data.availability_status === "pending" ? data.availability_status : getOptimisticAvailability(zip);
+      setModalStatus(availabilityStatus);
+      window.dispatchEvent(new CustomEvent("form_success", { detail: { zip, availability_status: availabilityStatus } }));
     } catch {
       setModalStatus("error");
       setModalError("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
-  const quickResult = quickStatus === "served" || quickStatus === "pending";
-  const modalResult = modalStatus === "served" || modalStatus === "pending";
+  function handleOverlayKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (event.key === "Escape") {
+      closeModal();
+    }
+  }
+
+  function getInlineChipText(): string {
+    if (inlineStatus === "served") {
+      return "Service available";
+    }
+
+    if (inlineStatus === "pending") {
+      return "Join city waitlist";
+    }
+
+    return "";
+  }
+
+  function getInlineMessage(): string {
+    if (inlineStatus === "invalid") {
+      return "Please enter a valid 5-digit ZIP code.";
+    }
+
+    if (inlineStatus === "checking") {
+      return "Checking ZIP...";
+    }
+
+    if (inlineStatus === "served") {
+      return "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
+    }
+
+    if (inlineStatus === "pending") {
+      return "We’re not live in this ZIP yet. Join early access and we’ll notify you when we expand.";
+    }
+
+    return "Enter your ZIP to see if we serve your area.";
+  }
+
+  function getModalChipText(): string {
+    if (modalStatus === "served") {
+      return "Service available";
+    }
+
+    if (modalStatus === "pending") {
+      return "Join city waitlist";
+    }
+
+    return "";
+  }
+
+  function getModalMessage(): string {
+    if (modalStatus === "served") {
+      return "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
+    }
+
+    if (modalStatus === "pending") {
+      return "We’re not live yet. Join early access and we’ll notify you when we expand.";
+    }
+
+    return "";
+  }
 
   return (
-    <>
-      <motion.section
-        className="mx-auto grid max-w-screen-lg gap-8 px-4 pb-16 pt-28 text-[var(--color-text)] md:grid-cols-[58%_42%] md:gap-12 md:px-6 md:pb-20 md:pt-32"
-        initial={{ opacity: 0, y: 40 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        aria-labelledby="hero-heading"
-      >
-        <motion.div
-          className="flex flex-col items-start justify-center"
-          variants={staggerContainer}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-        >
+    <motion.section
+      className="bg-[var(--color-bg)] px-[var(--space-lg)] py-[var(--space-4xl)] text-[var(--color-text)] md:py-[var(--space-5xl)]"
+      initial={{ opacity: 0, y: 40 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      aria-labelledby="hero-title"
+    >
+      <div className="mx-auto grid w-full max-w-[1120px] grid-cols-1 gap-[var(--space-xl)] lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] lg:items-center">
+        <div className="flex flex-col gap-[var(--space-lg)]">
           <motion.p
-            className="mb-4 inline-flex rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)] shadow-[var(--elev-1)]"
-            variants={staggerChild}
+            className="font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] tracking-[0.2px] text-[var(--color-muted)]"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.05 }}
           >
             Background-checked walkers — GPS recaps — Photo proof.
           </motion.p>
 
           <motion.h1
-            id="hero-heading"
-            className="max-w-[12ch] font-[family-name:var(--font-display)] text-[28px] font-bold leading-[36px] tracking-[-0.04em] text-[var(--color-text)] md:text-[40px] md:leading-[48px]"
-            variants={staggerChild}
+            id="hero-title"
+            className="max-w-[12ch] font-[family-name:var(--font-display)] text-[28px] font-bold leading-[36px] text-[var(--color-text)] lg:text-[var(--type-xxl)] lg:leading-[48px]"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.15 }}
           >
             Trusted local dog walks, on your schedule.
           </motion.h1>
 
           <motion.p
-            className="mt-5 max-w-[34rem] font-[family-name:var(--font-body)] text-[15px] leading-[22px] text-[var(--color-text)] md:text-[16px] md:leading-[24px]"
-            variants={staggerChild}
+            className="max-w-[36rem] font-[family-name:var(--font-body)] text-[var(--type-body)] leading-[22px] text-[var(--color-text)] md:text-[16px] md:leading-[24px]"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
           >
             Book a vetted local walker, see photos and live GPS.
           </motion.p>
 
           <motion.p
-            className="mt-4 inline-flex rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-3 font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
-            variants={staggerChild}
+            className="w-fit rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-sm)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
           >
             Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
           </motion.p>
 
+          <motion.form
+            className="flex w-full max-w-[40rem] flex-col gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)]"
+            onSubmit={handleInlineZipSubmit}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
+          >
+            <label className="font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="hero-zip">
+              ZIP code
+            </label>
+            <div className="grid grid-cols-1 gap-[var(--space-xs)] sm:grid-cols-[minmax(0,1fr)_auto]">
+              <input
+                id="hero-zip"
+                className="h-[44px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-sm)] font-[family-name:var(--font-body)] text-[var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:shadow-[0_6px_18px_var(--color-shadow)] focus-visible:outline focus-visible:outline-[4px] focus-visible:outline-offset-[2px] focus-visible:outline-[var(--color-accent)]"
+                type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                placeholder="78701"
+                value={zipValue}
+                onChange={(event) => handleInlineZipChange(event.target.value)}
+                aria-invalid={isInlineInvalid}
+                aria-describedby="hero-zip-status"
+              />
+              <motion.button
+                className="inline-flex h-[44px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] outline-none transition focus-ring disabled:opacity-60"
+                type="submit"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={inlineStatus === "checking"}
+              >
+                {inlineStatus === "checking" ? "Checking ZIP..." : "Check availability"}
+              </motion.button>
+            </div>
+            <div className="flex min-h-[28px] flex-wrap items-center gap-[var(--space-xs)]" aria-live="polite" id="hero-zip-status">
+              {getInlineChipText().length > 0 ? (
+                <span className={inlineStatus === "served" ? "chip chip--success" : "chip"}>{getInlineChipText()}</span>
+              ) : null}
+              <p className={isInlineInvalid ? "font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-text)]" : "font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]"}>
+                {getInlineMessage()}
+              </p>
+            </div>
+          </motion.form>
+
           <motion.div
-            className="mt-7 flex w-full flex-col gap-3 sm:flex-row sm:items-center"
-            variants={staggerChild}
+            className="flex flex-col gap-[var(--space-sm)] sm:flex-row"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
           >
             <motion.button
+              id="signup"
+              className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] outline-none transition focus-ring lg:h-[56px] sm:w-auto"
               type="button"
               onClick={openModal}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="h-12 rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-8 font-[family-name:var(--font-body)] text-[15px] font-semibold leading-[20px] text-[var(--color-cta-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] md:h-14"
             >
               Join the Waitlist
             </motion.button>
             <motion.a
+              className="inline-flex h-[48px] w-full items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)] outline-none transition hover:bg-[var(--color-surface)] focus-ring lg:h-[56px] sm:w-auto"
               href="#how-it-works"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex h-12 items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[15px] font-semibold leading-[20px] text-[var(--color-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] md:h-14"
             >
               How it works
             </motion.a>
           </motion.div>
-
-          <motion.form
-            className="mt-6 w-full max-w-[34rem] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--elev-1)]"
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleQuickCheck();
-            }}
-            variants={staggerChild}
-          >
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <label className="sr-only" htmlFor="hero-zip">
-                ZIP code
-              </label>
-              <input
-                id="hero-zip"
-                inputMode="numeric"
-                autoComplete="postal-code"
-                value={quickZip}
-                onChange={(event) => {
-                  setQuickZip(event.target.value);
-                  setQuickStatus("idle");
-                }}
-                placeholder="78701"
-                className="h-11 min-w-0 flex-1 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 font-[family-name:var(--font-body)] text-[15px] leading-[22px] text-[var(--color-text)] outline-none transition-[box-shadow,border-color] duration-200 ease-out placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)] focus:ring-offset-0"
-                aria-describedby="hero-zip-helper hero-zip-status"
-              />
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                disabled={quickStatus === "checking"}
-                className="h-11 rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-5 font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {quickStatus === "checking" ? "Checking ZIP..." : "Check availability"}
-              </motion.button>
-            </div>
-            <div id="hero-zip-helper" className="mt-3 font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">
-              Enter your ZIP to see if we serve your area.
-            </div>
-            <div id="hero-zip-status" className="mt-3 min-h-[2rem]" aria-live="polite">
-              {quickStatus === "invalid" ? (
-                <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-text)]">
-                  Please enter a valid 5-digit ZIP code.
-                </p>
-              ) : null}
-              {quickStatus === "checking" ? (
-                <p className="inline-flex items-center gap-2 font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-text)]">
-                  <span className="h-3 w-3 animate-spin rounded-[var(--radius-round)] border border-[var(--color-border)] border-t-[var(--color-text)]" aria-hidden="true" />
-                  Checking ZIP...
-                </p>
-              ) : null}
-              {quickResult ? (
-                <div className="flex flex-col gap-2">
-                  <span className="w-fit rounded-[var(--radius-round)] bg-[var(--color-accent)] px-3 py-1 font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-accent-text)]">
-                    {quickStatus === "served" ? "Service available" : "Join city waitlist"}
-                  </span>
-                  <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-text)]">
-                    {quickStatus === "served" ? "Great. WalkBuddy serves your ZIP. Select a time to book a walk." : "We’re not live in this ZIP yet. Join early access and we’ll notify you when we expand."}
-                  </p>
-                </div>
-              ) : null}
-            </div>
-          </motion.form>
-        </motion.div>
+        </div>
 
         <motion.div
-          className="flex items-center"
-          initial={{ opacity: 0, y: 24, scale: 0.985 }}
-          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-xs)] shadow-[var(--elev-2)]"
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.45 }}
         >
-          <div className="w-full rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-2 shadow-[var(--elev-2)]">
-            <ProjectImage id="hero" className="h-auto w-full rounded-[var(--radius-md)] shadow-[var(--elev-1)]" />
-          </div>
+          <ProjectImage id="hero" className="aspect-[4/3] h-auto w-full rounded-[var(--radius-md)] object-cover" />
         </motion.div>
-      </motion.section>
+      </div>
 
       {isModalOpen ? (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-end justify-center bg-[var(--color-text)]/20 px-4 py-4 backdrop-blur-sm sm:items-center"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[color-mix(in_srgb,var(--color-text)_34%,transparent)] px-[var(--space-lg)] py-[var(--space-xl)]"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeModal();
+            }
+          }}
+          onKeyDown={handleOverlayKeyDown}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          role="presentation"
         >
           <motion.div
-            className="w-full max-w-[540px] rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-5 text-[var(--color-text)] shadow-[var(--elev-2)] md:p-6"
+            className="max-h-[calc(100vh-var(--space-xl))] w-full max-w-[540px] overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-lg)] text-[var(--color-text)] shadow-[var(--elev-2)] outline-none"
             role="dialog"
             aria-modal="true"
             aria-labelledby="signup-modal-title"
-            initial={{ opacity: 0, scale: 0.985, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            ref={modalRef}
+            tabIndex={-1}
+            initial={{ opacity: 0, scale: 0.985 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.18, ease: [0.22, 0.9, 0.21, 1] }}
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
+            <div className="mb-[var(--space-lg)] flex items-start justify-between gap-[var(--space-md)]">
+              <div className="flex flex-col gap-[var(--space-xs)]">
                 <p className="font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-muted)]">
                   WalkBuddy early access
                 </p>
-                <h2 id="signup-modal-title" className="mt-1 font-[family-name:var(--font-display)] text-[22px] font-semibold leading-[30px] tracking-[-0.02em] text-[var(--color-text)] md:text-[28px] md:leading-[36px]">
+                <h2 id="signup-modal-title" className="font-[family-name:var(--font-display)] text-[var(--type-md)] font-semibold leading-[30px] text-[var(--color-text)] md:text-[28px] md:leading-[36px]">
                   Check availability
                 </h2>
               </div>
-              <button
-                ref={closeButtonRef}
+              <motion.button
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] font-[family-name:var(--font-body)] text-[22px] leading-[22px] text-[var(--color-text)] outline-none transition hover:bg-[var(--color-surface)] focus-ring disabled:opacity-60"
                 type="button"
+                aria-label="Close signup modal"
                 onClick={closeModal}
-                className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] font-[family-name:var(--font-body)] text-[18px] font-medium leading-none text-[var(--color-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
-                aria-label="Close availability modal"
+                ref={closeButtonRef}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={isSubmitting}
               >
                 ×
-              </button>
+              </motion.button>
             </div>
 
-            <form className="mt-6 grid gap-4" onSubmit={submitModal}>
-              <label className="grid gap-2 font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)]" htmlFor="signup-email">
+            <form className="flex flex-col gap-[var(--space-md)]" onSubmit={handleModalSubmit}>
+              <label className="flex flex-col gap-[var(--space-xs)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="signup-name">
+                First name
+                <input
+                  id="signup-name"
+                  className="h-[44px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-sm)] font-[family-name:var(--font-body)] text-[var(--type-body)] font-normal leading-[22px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:shadow-[0_6px_18px_var(--color-shadow)] focus-visible:outline focus-visible:outline-[4px] focus-visible:outline-offset-[2px] focus-visible:outline-[var(--color-accent)]"
+                  type="text"
+                  autoComplete="given-name"
+                  value={modalName}
+                  onChange={(event) => setModalName(event.target.value)}
+                />
+              </label>
+
+              <label className="flex flex-col gap-[var(--space-xs)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="signup-email">
                 Email
                 <input
                   id="signup-email"
+                  className="h-[44px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-sm)] font-[family-name:var(--font-body)] text-[var(--type-body)] font-normal leading-[22px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:shadow-[0_6px_18px_var(--color-shadow)] focus-visible:outline focus-visible:outline-[4px] focus-visible:outline-offset-[2px] focus-visible:outline-[var(--color-accent)]"
                   type="email"
                   autoComplete="email"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
-                    setModalError("");
-                    if (modalStatus === "error" || modalStatus === "duplicate") {
-                      setModalStatus("idle");
-                    }
-                  }}
                   placeholder="you@example.com"
-                  className="h-11 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 font-[family-name:var(--font-body)] text-[15px] font-normal leading-[22px] text-[var(--color-text)] outline-none transition-[box-shadow,border-color] duration-200 ease-out placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)] focus:ring-offset-0"
-                  aria-describedby="signup-status"
+                  value={modalEmail}
+                  onChange={(event) => setModalEmail(event.target.value)}
+                  aria-invalid={isModalValidationError && !EMAIL_PATTERN.test(modalEmail.trim())}
+                  aria-describedby="signup-modal-status"
+                  required
                 />
               </label>
 
-              <label className="grid gap-2 font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)]" htmlFor="signup-zip">
+              <label className="flex flex-col gap-[var(--space-xs)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="signup-zip">
                 ZIP code
                 <input
                   id="signup-zip"
+                  className="h-[44px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-sm)] font-[family-name:var(--font-body)] text-[var(--type-body)] font-normal leading-[22px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:shadow-[0_6px_18px_var(--color-shadow)] focus-visible:outline focus-visible:outline-[4px] focus-visible:outline-offset-[2px] focus-visible:outline-[var(--color-accent)]"
+                  type="text"
                   inputMode="numeric"
                   autoComplete="postal-code"
-                  value={modalZip}
-                  onChange={(event) => {
-                    setModalZip(event.target.value);
-                    setModalError("");
-                    if (modalStatus === "error" || modalStatus === "duplicate") {
-                      setModalStatus("idle");
-                    }
-                  }}
                   placeholder="ZIP code"
-                  className="h-11 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 font-[family-name:var(--font-body)] text-[15px] font-normal leading-[22px] text-[var(--color-text)] outline-none transition-[box-shadow,border-color] duration-200 ease-out placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-4 focus:ring-[var(--color-accent)] focus:ring-offset-0"
-                  aria-describedby="signup-status"
+                  value={modalZip}
+                  onChange={(event) => setModalZip(event.target.value)}
+                  aria-invalid={isModalValidationError && !ZIP_PATTERN.test(modalZip.trim())}
+                  aria-describedby="signup-modal-status"
+                  required
                 />
               </label>
 
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <motion.button
-                  type="button"
-                  onClick={() => {
-                    if (zipPattern.test(modalZip.trim())) {
-                      setModalStatus(modalZip.trim().startsWith("787") ? "served" : "pending");
-                      setModalError("");
-                    } else {
-                      setModalStatus("error");
-                      setModalError("Please enter a valid email and a 5-digit ZIP code.");
-                    }
-                  }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={modalStatus === "loading"}
-                  className="h-12 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-6 font-[family-name:var(--font-body)] text-[15px] font-semibold leading-[20px] text-[var(--color-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Check availability
-                </motion.button>
-                <motion.button
-                  type="submit"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  disabled={modalStatus === "loading"}
-                  className="h-12 rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-8 font-[family-name:var(--font-body)] text-[15px] font-semibold leading-[20px] text-[var(--color-cta-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-60 md:h-14"
-                >
-                  {modalStatus === "loading" ? "Checking ZIP..." : "Join the Waitlist"}
-                </motion.button>
-              </div>
+              <label className="grid grid-cols-[auto_1fr] items-start gap-[var(--space-sm)] font-[family-name:var(--font-body)] text-[13px] font-normal leading-[18px] text-[var(--color-text)]" htmlFor="signup-consent">
+                <input
+                  id="signup-consent"
+                  className="mt-[var(--space-xxs)] h-[var(--space-lg)] w-[var(--space-lg)] rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-cta-bg)] outline-none focus-ring"
+                  type="checkbox"
+                  checked={modalConsent}
+                  onChange={(event) => setModalConsent(event.target.checked)}
+                  aria-invalid={isModalValidationError && !modalConsent}
+                  required
+                />
+                <span className="text-[var(--color-text)]">
+                  I agree to receive WalkBuddy availability updates and confirmation emails.
+                </span>
+              </label>
 
-              <div id="signup-status" className="min-h-[4rem] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-4" aria-live="polite">
-                {modalStatus === "loading" ? (
-                  <p className="inline-flex items-center gap-2 font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)]">
-                    <span className="h-3 w-3 animate-spin rounded-[var(--radius-round)] border border-[var(--color-border)] border-t-[var(--color-text)]" aria-hidden="true" />
-                    Checking ZIP...
-                  </p>
-                ) : null}
-
-                {modalError ? (
-                  <p className="font-[family-name:var(--font-body)] text-[14px] leading-[20px] text-[var(--color-text)]">
-                    {modalError}
-                  </p>
-                ) : null}
-
-                {modalResult ? (
-                  <div className="grid gap-3">
-                    <span className="w-fit rounded-[var(--radius-round)] bg-[var(--color-accent)] px-3 py-1 font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-accent-text)]">
-                      {modalStatus === "served" ? "Service available" : "Join city waitlist"}
-                    </span>
-                    <p className="font-[family-name:var(--font-body)] text-[14px] leading-[20px] text-[var(--color-text)]">
-                      {modalStatus === "served" ? "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps." : "We’re not live yet. Join early access and we’ll notify you when we expand."}
-                    </p>
-                    <a
-                      href="#how-it-works"
-                      onClick={closeModal}
-                      className="w-fit rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-4 py-3 font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] transition-[box-shadow] duration-200 ease-out focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-surface)]"
-                    >
-                      View booking details
-                    </a>
+              <div className="min-h-[52px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)]" aria-live="polite" id="signup-modal-status">
+                {modalStatus === "checking" ? (
+                  <div className="flex items-center gap-[var(--space-xs)]">
+                    <span className="h-[18px] w-[18px] animate-spin rounded-[var(--radius-round)] border-2 border-[var(--color-border)] border-t-[var(--color-text)]" aria-hidden="true" />
+                    <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">Checking ZIP...</p>
                   </div>
                 ) : null}
 
-                {modalStatus === "idle" && !modalError ? (
-                  <p className="font-[family-name:var(--font-body)] text-[14px] leading-[20px] text-[var(--color-muted)]">
-                    Enter your email and ZIP to check WalkBuddy coverage.
-                  </p>
+                {isModalSuccess ? (
+                  <div className="flex flex-col gap-[var(--space-xs)]">
+                    <span className={modalStatus === "served" ? "chip chip--success w-fit" : "chip w-fit"}>{getModalChipText()}</span>
+                    <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-text)]">{getModalMessage()}</p>
+                    <motion.a
+                      className="mt-[var(--space-xs)] inline-flex h-[44px] w-fit items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)] outline-none transition hover:bg-[var(--color-bg)] focus-ring"
+                      href="#availability"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      View booking details
+                    </motion.a>
+                  </div>
                 ) : null}
+
+                {modalError.length > 0 ? (
+                  <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-text)]">{modalError}</p>
+                ) : null}
+
+                {modalStatus === "idle" && modalError.length === 0 ? (
+                  <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">Enter your email and ZIP to check WalkBuddy coverage.</p>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-1 gap-[var(--space-sm)] sm:grid-cols-2">
+                <motion.button
+                  className="inline-flex h-[48px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] outline-none transition focus-ring disabled:opacity-60 lg:h-[56px]"
+                  type="submit"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Checking ZIP..." : "Join the Waitlist"}
+                </motion.button>
+                <motion.button
+                  className="inline-flex h-[48px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)] outline-none transition hover:bg-[var(--color-surface)] focus-ring disabled:opacity-60 lg:h-[56px]"
+                  type="button"
+                  onClick={handleModalSecondaryCheck}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isSubmitting || modalStatus === "checking"}
+                >
+                  Check availability
+                </motion.button>
               </div>
             </form>
           </motion.div>
         </motion.div>
       ) : null}
-    </>
+    </motion.section>
   );
 }
