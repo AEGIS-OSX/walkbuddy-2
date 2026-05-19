@@ -394,7 +394,7 @@ export default function Hero() {
                 onChange={(event) => handleInlineZipChange(event.target.value)}
                 aria-invalid={isInlineInvalid}
                 aria-describedby="hero-zip-status"
-              />
+              ></input>
               <motion.button
                 className="inline-flex h-[44px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-semibold leading-[20px] text-[var(--color-cta-text)] outline-none transition focus-ring disabled:opacity-60"
                 type="submit"
@@ -450,7 +450,7 @@ export default function Hero() {
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.45 }}
         >
-          <ProjectImage id="hero" className="aspect-[4/3] h-auto w-full rounded-[var(--radius-md)] object-cover" />
+          <ProjectImage id="hero" className="aspect-[4/3] h-auto w-full rounded-[var(--radius-md)] object-cover"></ProjectImage>
         </motion.div>
       </div>
 
@@ -512,7 +512,7 @@ export default function Hero() {
                   autoComplete="given-name"
                   value={modalName}
                   onChange={(event) => setModalName(event.target.value)}
-                />
+                ></input>
               </label>
 
               <label className="flex flex-col gap-[var(--space-xs)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="signup-email">
@@ -528,7 +528,7 @@ export default function Hero() {
                   aria-invalid={isModalValidationError && !EMAIL_PATTERN.test(modalEmail.trim())}
                   aria-describedby="signup-modal-status"
                   required
-                />
+                ></input>
               </label>
 
               <label className="flex flex-col gap-[var(--space-xs)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="signup-zip">
@@ -545,7 +545,7 @@ export default function Hero() {
                   aria-invalid={isModalValidationError && !ZIP_PATTERN.test(modalZip.trim())}
                   aria-describedby="signup-modal-status"
                   required
-                />
+                ></input>
               </label>
 
               <label className="grid grid-cols-[auto_1fr] items-start gap-[var(--space-sm)] font-[family-name:var(--font-body)] text-[13px] font-normal leading-[18px] text-[var(--color-text)]" htmlFor="signup-consent">
@@ -557,7 +557,7 @@ export default function Hero() {
                   onChange={(event) => setModalConsent(event.target.checked)}
                   aria-invalid={isModalValidationError && !modalConsent}
                   required
-                />
+                ></input>
                 <span className="text-[var(--color-text)]">
                   I agree to receive WalkBuddy availability updates and confirmation emails.
                 </span>
@@ -566,7 +566,7 @@ export default function Hero() {
               <div className="min-h-[52px] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)]" aria-live="polite" id="signup-modal-status">
                 {modalStatus === "checking" ? (
                   <div className="flex items-center gap-[var(--space-xs)]">
-                    <span className="h-[18px] w-[18px] animate-spin rounded-[var(--radius-round)] border-2 border-[var(--color-border)] border-t-[var(--color-text)]" aria-hidden="true" />
+                    <span className="h-[18px] w-[18px] animate-spin rounded-[var(--radius-round)] border-2 border-[var(--color-border)] border-t-[var(--color-text)]" aria-hidden="true"></span>
                     <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">Checking ZIP...</p>
                   </div>
                 ) : null}
