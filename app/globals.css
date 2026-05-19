@@ -136,7 +136,7 @@ canvas {
 
   .btn-primary:active {
     transform: scale(0.98);
-    box-shadow: inset 0 0 0 9999px rgba(38,70,83,0.04);
+    box-shadow: var(--elev-1);
   }
 
   .btn-primary:disabled {
