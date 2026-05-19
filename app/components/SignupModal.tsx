@@ -119,15 +119,15 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
   const [zip, setZip] = useState(prefillZip);
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
-  const [availability, setAvailability] = useState<AvailabilityStatus | null>(null);
+  const [availability, setAvailability] = useState(null as AvailabilityStatus | null);
   const [validationMessage, setValidationMessage] = useState("");
   const [duplicateMessage, setDuplicateMessage] = useState("");
   const [networkMessage, setNetworkMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const panelRef = useRef<HTMLDivElement | null>(null);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const panelRef = useRef(null as HTMLDivElement | null);
+  const closeButtonRef = useRef(null as HTMLButtonElement | null);
+  const previousFocusRef = useRef(null as HTMLElement | null);
   const wasOpenRef = useRef(false);
 
   const trimmedEmail = email.trim();
@@ -176,8 +176,10 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
         return;
       }
 
-      const focusableElements = Array.from(panelRef.current.querySelectorAll<HTMLElement>(focusableSelector)).filter(
-        (element: HTMLElement) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true",
+      const focusableElements = Array.from(panelRef.current.querySelectorAll(focusableSelector)).filter(
+        (element): element is HTMLElement => element instanceof HTMLElement
+          && !element.hasAttribute("disabled")
+          && element.getAttribute("aria-hidden") !== "true",
       );
 
       if (focusableElements.length === 0) {
@@ -222,7 +224,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     setNetworkMessage("");
   }
 
-  function handleZipChange(event: React.ChangeEvent<HTMLInputElement>): void {
+  function handleZipChange(event: { target: HTMLInputElement }): void {
     setZip(event.target.value.replace(/\D/g, "").slice(0, 5));
     setAvailability(null);
     clearMessages();
@@ -241,7 +243,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     clearMessages();
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleSubmit(event: { preventDefault: () => void }) {
     event.preventDefault();
 
     if (!formValid) {
@@ -328,7 +330,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
             variants={overlayVariants}
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={onClose}
-          />
+          ></motion.button>
 
           <motion.div
             ref={panelRef}
@@ -376,12 +378,12 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                     autoComplete="email"
                     aria-invalid={validationMessage ? !emailValid : undefined}
                     className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    onChange={(event) => {
                       setEmail(event.target.value);
                       setAvailability(null);
                       clearMessages();
                     }}
-                  />
+                  ></input>
                 </label>
 
                 <label className="space-y-[var(--space-xs)]">
@@ -399,7 +401,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                     aria-invalid={validationMessage ? !zipValid : undefined}
                     className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
                     onChange={handleZipChange}
-                  />
+                  ></input>
                 </label>
 
                 <label className="space-y-[var(--space-xs)]">
@@ -412,11 +414,11 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                     placeholder="First name (optional)"
                     autoComplete="given-name"
                     className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                    onChange={(event) => {
                       setName(event.target.value);
                       clearMessages();
                     }}
-                  />
+                  ></input>
                 </label>
               </div>
 
@@ -426,11 +428,11 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                   required
                   checked={consent}
                   className="mt-[var(--space-xxs)] min-h-4 min-w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                  onChange={(event) => {
                     setConsent(event.target.checked);
                     clearMessages();
                   }}
-                />
+                ></input>
                 <span>I agree to receive updates and marketing emails.</span>
               </label>
 
