@@ -13,7 +13,7 @@ const focusableSelector = [
   "textarea:not([disabled])",
   "input:not([disabled])",
   "select:not([disabled])",
-  "[tabindex]:not([tabindex='-1'])",
+  "[tabindex]:not([tabindex=\"-1\"])",
 ].join(", ");
 
 function isValidEmail(value: string) {
@@ -241,7 +241,7 @@ export default function SignupModal() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
         onClick={closeModal}
-      />
+      ></motion.div>
 
       <motion.div
         ref={panelRef}
@@ -292,7 +292,7 @@ export default function SignupModal() {
                   setEmail(event.target.value);
                   resetMessages();
                 }}
-              />
+              ></input>
             </label>
 
             <label className="space-y-1.5 text-sm font-medium text-[var(--color-text)]">
@@ -313,7 +313,7 @@ export default function SignupModal() {
                   setAvailability(getAvailability(nextZip));
                   resetMessages();
                 }}
-              />
+              ></input>
             </label>
 
             <label className="space-y-1.5 text-sm font-medium text-[var(--color-text)]">
@@ -325,7 +325,7 @@ export default function SignupModal() {
                 autoComplete="given-name"
                 className="h-12 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-base text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)]"
                 onChange={(event) => setName(event.target.value)}
-              />
+              ></input>
             </label>
           </div>
 
@@ -339,7 +339,7 @@ export default function SignupModal() {
                 setConsent(event.target.checked);
                 resetMessages();
               }}
-            />
+            ></input>
             <span>I agree to receive marketing emails from WalkBuddy.</span>
           </label>
 
