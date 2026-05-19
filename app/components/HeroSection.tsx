@@ -10,16 +10,9 @@ type SignupModalDetail = {
   zip?: string;
 };
 
-const ZIP_LABEL = "ZIP code";
 const ZIP_PLACEHOLDER = "78701";
 const CHECK_AVAILABILITY = "Check availability";
-const ZIP_HELPER = "Enter your ZIP to see if we serve your area.";
-const ZIP_VALIDATION_ERROR = "Please enter a valid 5-digit ZIP code.";
 const ZIP_CHECKING_STATE = "Checking ZIP...";
-const SUCCESS_CHIP = "Service available";
-const PENDING_CHIP = "Join city waitlist";
-const SUCCESS_MESSAGE = "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
-const PENDING_MESSAGE = "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
 const PRIMARY_CTA = "Join the Waitlist";
 const zipPattern = /^\d{5}$/;
 
@@ -37,12 +30,6 @@ const revealVariants: Variants = {
       ease: "easeOut",
     },
   }),
-};
-
-const heroImageProps = {
-  id: "hero" as const,
-  className: "w-full h-auto rounded-[var(--radius-md)] shadow-[var(--elev-1)]",
-  fetchpriority: "high",
 };
 
 function openSignupModal(detail?: SignupModalDetail): void {
@@ -101,11 +88,11 @@ export default function HeroSection(): JSX.Element {
   };
 
   const handlePrimaryCta = (): void => {
-    openSignupModal(hasValidZip ? { zip: normalizedZip } : undefined);
+    window.dispatchEvent(new CustomEvent("open-signup-modal", { detail: hasValidZip ? { zip: normalizedZip } : undefined }));
   };
 
   const handleNavAvailability = (): void => {
-    openSignupModal();
+    window.dispatchEvent(new CustomEvent("open-signup-modal"));
   };
 
   return (
@@ -149,24 +136,13 @@ export default function HeroSection(): JSX.Element {
 
       <div className="container grid gap-[var(--space-xl)] py-[var(--space-4xl)] md:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] md:items-center md:py-[var(--space-5xl)]">
         <div className="flex flex-col items-start">
-          <motion.p
-            variants={revealVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            custom={0}
-            className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-muted)]"
-          >
-            Background-checked walkers — GPS recaps — Photo proof
-          </motion.p>
-
           <motion.h1
             variants={revealVariants}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            custom={1}
-            className="mt-[var(--space-md)] max-w-3xl font-[family-name:var(--font-display)] text-[length:var(--type-lg)] font-bold leading-[36px] tracking-[-0.02em] text-[var(--color-text)] md:text-[length:var(--type-xxl)] md:leading-[48px]"
+            custom={0}
+            className="max-w-3xl font-[family-name:var(--font-display)] text-[length:var(--type-lg)] font-bold leading-[36px] tracking-[-0.02em] text-[var(--color-text)] md:text-[length:var(--type-xxl)] md:leading-[48px]"
           >
             Trusted local dog walks, on your schedule.
           </motion.h1>
@@ -176,7 +152,7 @@ export default function HeroSection(): JSX.Element {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            custom={2}
+            custom={1}
             className="mt-[var(--space-md)] max-w-2xl font-[family-name:var(--font-display)] text-[length:var(--type-sm)] font-medium leading-[24px] text-[var(--color-text)]"
           >
             Book a vetted local walker, see photos and live GPS.
@@ -187,10 +163,22 @@ export default function HeroSection(): JSX.Element {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            custom={3}
-            className="mt-[var(--space-md)] max-w-2xl rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
+            custom={2}
+            className="mt-[var(--space-md)] max-w-2xl rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)]"
+            style={{ boxShadow: "var(--elev-1)" }}
           >
             Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
+          </motion.p>
+
+          <motion.p
+            variants={revealVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            custom={3}
+            className="mt-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-muted)]"
+          >
+            Background-checked walkers — GPS recaps — Photo proof
           </motion.p>
 
           <motion.form
@@ -235,7 +223,7 @@ export default function HeroSection(): JSX.Element {
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 className="inline-flex h-11 min-w-36 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-[length:14px] font-semibold leading-[20px] text-[var(--color-cta-text)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isChecking ? ZIP_CHECKING_STATE : CHECK_AVAILABILITY}
+                {isChecking ? "Checking ZIP..." : "Check availability"}
               </motion.button>
             </div>
 
@@ -301,7 +289,12 @@ export default function HeroSection(): JSX.Element {
           transition={{ delay: 0.18, duration: 0.5, ease: "easeOut" }}
           className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-xs)] shadow-[var(--elev-2)]"
         >
-          <ProjectImage {...heroImageProps}></ProjectImage>
+          <ProjectImage
+            id="hero"
+            className="h-auto w-full rounded-[var(--radius-md)]"
+            fetchpriority="high"
+            style={{ boxShadow: "var(--elev-1)" }}
+          ></ProjectImage>
         </motion.div>
       </div>
     </motion.section>
