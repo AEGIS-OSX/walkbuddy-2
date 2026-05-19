@@ -207,8 +207,8 @@ canvas {
 }
 
 .wb-section {
-  padding-top: var(--space-4xl);
-  padding-bottom: var(--space-4xl);
+  padding-top: var(--space-5xl);
+  padding-bottom: var(--space-5xl);
 }
 
 @media (min-width: 768px) {
