@@ -145,7 +145,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
   const trimmedZip = zip.trim();
   const emailValid = isValidEmail(trimmedEmail);
   const zipValid = isValidZip(trimmedZip);
-  const canSubmit = emailValid && zipValid && consent && !loading;
+  const canSubmit = !loading;
 
   const clearFeedback = useCallback((): void => {
     setError("");
@@ -339,7 +339,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
           responseBody = null;
         }
 
-        if (response.status === 409) {
+        if (response.status === 409 || responseBody?.error === duplicateEntry) {
           setAvailability(null);
           setDuplicate(true);
           setError("");
@@ -349,7 +349,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
         if (!response.ok) {
           setAvailability(null);
           setDuplicate(false);
-          setError(responseBody?.error === duplicateEntry ? duplicateEntry : networkError);
+          setError(networkError);
           return;
         }
 
@@ -373,7 +373,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-[rgba(0,0,0,0.4)] px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
+          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-black/40 px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
