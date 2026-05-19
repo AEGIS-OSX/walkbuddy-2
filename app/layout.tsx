@@ -39,23 +39,23 @@ export default function RootLayout({
             <a
               href="/"
               aria-label="WalkBuddy home"
-              className="font-[family-name:var(--font-display)] text-[var(--type-sm)] font-semibold tracking-[-0.01em] text-[var(--color-text)] transition-opacity duration-200 ease-out hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-focus)] motion-reduce:transition-none"
+              className="font-[family-name:var(--font-display)] text-[var(--type-sm)] font-semibold tracking-[-0.01em] text-[var(--color-text)] transition-opacity duration-200 ease-out hover:opacity-75 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-text)] motion-reduce:transition-none"
             >
               WalkBuddy
             </a>
 
             <div className="flex items-center gap-[var(--space-xs)] sm:gap-[var(--space-sm)]">
               <a
-                href="#owners"
-                className="rounded-full px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--type-xs)] font-medium text-[var(--color-muted)] transition-colors duration-200 ease-out hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] motion-reduce:transition-none"
+                href="#features"
+                className="rounded-full px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--type-xs)] font-medium text-[var(--color-muted)] transition-colors duration-200 ease-out hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-text)] motion-reduce:transition-none"
               >
-                For owners
+                How it works
               </a>
               <a
-                href="#walkers"
-                className="rounded-full px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--type-xs)] font-medium text-[var(--color-muted)] transition-colors duration-200 ease-out hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] motion-reduce:transition-none"
+                href="#availability"
+                className="rounded-full px-[var(--space-sm)] py-[var(--space-xs)] text-[var(--type-xs)] font-medium text-[var(--color-muted)] transition-colors duration-200 ease-out hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-text)] motion-reduce:transition-none"
               >
-                For walkers
+                Pricing
               </a>
             </div>
           </div>
