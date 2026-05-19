@@ -51,6 +51,38 @@ const PENDING_MESSAGE = `We’re not live yet. Join early access and we’ll not
 const FOLLOW_UP_CTA = "View booking details";
 const CONSENT_LABEL = "By joining the waitlist you agree to receive marketing emails. You can unsubscribe at any time.";
 
+const overlayStyle: React.CSSProperties = {
+  backgroundColor: "color-mix(in srgb, var(--color-text) 60%, transparent)",
+};
+
+const cardStyle: React.CSSProperties = {
+  backgroundColor: "var(--color-bg)",
+  borderColor: "var(--color-border)",
+  borderRadius: "var(--radius-md)",
+  boxShadow: "var(--elev-2)",
+};
+
+const inputStyle: React.CSSProperties = {
+  height: "44px",
+  borderRadius: "12px",
+  borderColor: "var(--color-border)",
+  backgroundColor: "var(--color-bg)",
+  color: "var(--color-text)",
+};
+
+const primaryButtonStyle: React.CSSProperties = {
+  backgroundColor: "var(--color-cta-bg)",
+  color: "var(--color-cta-text)",
+  borderRadius: "var(--radius-md)",
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  backgroundColor: "var(--color-bg)",
+  borderColor: "var(--color-border)",
+  color: "var(--color-text)",
+  borderRadius: "var(--radius-md)",
+};
+
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const zipPattern = /^\d{5}$/;
 
@@ -325,6 +357,7 @@ export default function SignupModal(): JSX.Element {
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-[var(--color-text)]/60 px-[var(--space-md)] py-[var(--space-lg)]"
+      style={overlayStyle}
       onMouseDown={handleOverlayClick}
       onKeyDown={handleKeyDown}
       role="presentation"
@@ -340,6 +373,7 @@ export default function SignupModal(): JSX.Element {
         exit={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
         transition={{ duration: prefersReducedMotion ? 0 : 0.35, ease: "easeOut" }}
         className="relative max-h-[calc(100vh-var(--space-xl))] w-full max-w-xl overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-lg)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] shadow-[var(--elev-2)] md:p-[var(--space-xl)]"
+        style={cardStyle}
       >
         <button
           type="button"
@@ -347,6 +381,7 @@ export default function SignupModal(): JSX.Element {
           onClick={closeModal}
           disabled={isLoading}
           className="absolute right-[var(--space-md)] top-[var(--space-md)] inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] font-[family-name:var(--font-body)] text-[length:var(--type-sm)] leading-[24px] text-[var(--color-text)] transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          style={secondaryButtonStyle}
         >
           ×
         </button>
@@ -358,9 +393,6 @@ export default function SignupModal(): JSX.Element {
           >
             {MODAL_TITLE}
           </h2>
-          <p className="mt-[var(--space-xs)] max-w-md font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-muted)] md:leading-[24px]">
-            Enter your details to see current WalkBuddy availability for your ZIP.
-          </p>
         </div>
 
         <div
@@ -397,6 +429,7 @@ export default function SignupModal(): JSX.Element {
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 onClick={() => window.location.assign("/thank-you")}
                 className="mt-[var(--space-md)] inline-flex h-12 items-center justify-center rounded-[var(--radius-md)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] focus-visible:outline-none"
+                style={secondaryButtonStyle}
               >
                 {FOLLOW_UP_CTA}
               </motion.button>
@@ -425,6 +458,7 @@ export default function SignupModal(): JSX.Element {
                 disabled={isLoading}
                 aria-describedby="signup-modal-status"
                 className="h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                style={inputStyle}
               />
             </div>
 
@@ -450,6 +484,7 @@ export default function SignupModal(): JSX.Element {
                 disabled={isLoading}
                 aria-describedby="signup-modal-status"
                 className="h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                style={inputStyle}
               />
             </div>
 
@@ -469,6 +504,7 @@ export default function SignupModal(): JSX.Element {
                 onChange={(event) => setName(event.currentTarget.value)}
                 disabled={isLoading}
                 className="h-[44px] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                style={inputStyle}
               />
             </div>
 
@@ -493,6 +529,7 @@ export default function SignupModal(): JSX.Element {
                 whileTap={prefersReducedMotion || isLoading ? undefined : { scale: 0.98 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-8 font-[family-name:var(--font-display)] text-[length:var(--type-body)] font-semibold leading-[22px] text-[var(--color-cta-text)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                style={primaryButtonStyle}
               >
                 {isLoading ? CHECKING_STATE_LABEL : PRIMARY_BUTTON_LABEL}
               </motion.button>
@@ -505,6 +542,7 @@ export default function SignupModal(): JSX.Element {
                 whileTap={prefersReducedMotion || isLoading ? undefined : { scale: 0.98 }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
                 className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-8 font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                style={secondaryButtonStyle}
               >
                 {SECONDARY_BUTTON_LABEL}
               </motion.button>
