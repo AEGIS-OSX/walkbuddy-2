@@ -164,17 +164,25 @@ body {
   width: 100%;
   max-width: 1120px;
   margin: 0 auto;
-  padding-left: var(--space-md);
-  padding-right: var(--space-md);
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
 }
 
 .wb-section {
-  padding-top: var(--space-5xl);
-  padding-bottom: var(--space-5xl);
+  padding-top: var(--space-4xl);
+  padding-bottom: var(--space-4xl);
+}
+
+@media (min-width: 768px) {
+  .wb-section {
+    padding-top: var(--space-5xl);
+    padding-bottom: var(--space-5xl);
+  }
 }
 
 .wb-section-quiet {
-  background: var(--color-surface);
+  padding-top: var(--space-3xl);
+  padding-bottom: var(--space-3xl);
 }
 
 /* Buttons */
@@ -184,27 +192,35 @@ body {
   justify-content: center;
   gap: var(--space-sm);
   border-radius: var(--radius-md);
+  font-family: var(--font-display);
   font-weight: var(--font-weight-semibold);
   line-height: 1;
-  transition: transform 150ms ease-out, box-shadow 150ms ease-out;
+  transition: transform 150ms ease-out;
 }
 
 .wb-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(168,230,207,0.18);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 .wb-btn-primary {
   background: var(--color-cta-bg);
   color: var(--color-cta-text);
-  padding: 14px var(--space-xl);
+  padding: 0 var(--space-lg);
   min-height: 48px;
+}
+
+@media (min-width: 1024px) {
+  .wb-btn-primary {
+    min-height: 56px;
+  }
 }
 
 .wb-btn-primary[disabled] {
   background: #FFF2D0;
-  color: rgba(38,70,83,0.4);
+  color: color-mix(in oklab, var(--color-text) 40%, transparent);
   cursor: not-allowed;
+  transform: none;
 }
 
 .wb-btn-secondary {
@@ -213,6 +229,7 @@ body {
   border: 1.5px solid var(--color-border);
   padding: 12px var(--space-lg);
   min-height: 44px;
+  border-radius: var(--radius-md);
 }
 
 /* Chips */
