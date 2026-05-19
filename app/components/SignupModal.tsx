@@ -47,25 +47,21 @@ const CHECKING_STATE_LABEL = "Checking ZIP...";
 const SUCCESS_CHIP = "Service available";
 const SUCCESS_MESSAGE = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
 const PENDING_CHIP = "Join city waitlist";
-const PENDING_MESSAGE = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
+const PENDING_MESSAGE = "We’re not live yet. Join early access and we’ll notify you when we expand.";
 const FOLLOW_UP_CTA = "View booking details";
 const CONSENT_LABEL = "By joining the waitlist you agree to receive marketing emails. You can unsubscribe at any time.";
 
-const overlayStyle: React.CSSProperties = {
-  backgroundColor: "color-mix(in srgb, var(--color-text) 60%, transparent)",
-};
-
 const cardStyle: React.CSSProperties = {
   backgroundColor: "var(--color-bg)",
-  borderColor: "var(--color-border)",
+  border: "1px solid var(--color-border)",
   borderRadius: "var(--radius-md)",
   boxShadow: "var(--elev-2)",
 };
 
 const inputStyle: React.CSSProperties = {
   height: "44px",
+  border: "1px solid var(--color-border)",
   borderRadius: "12px",
-  borderColor: "var(--color-border)",
   backgroundColor: "var(--color-bg)",
   color: "var(--color-text)",
 };
@@ -78,7 +74,7 @@ const primaryButtonStyle: React.CSSProperties = {
 
 const secondaryButtonStyle: React.CSSProperties = {
   backgroundColor: "var(--color-bg)",
-  borderColor: "var(--color-border)",
+  border: "1.5px solid var(--color-border)",
   color: "var(--color-text)",
   borderRadius: "var(--radius-md)",
 };
@@ -357,7 +353,6 @@ export default function SignupModal(): JSX.Element {
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex min-h-screen items-center justify-center bg-[var(--color-text)]/60 px-[var(--space-md)] py-[var(--space-lg)]"
-      style={overlayStyle}
       onMouseDown={handleOverlayClick}
       onKeyDown={handleKeyDown}
       role="presentation"
@@ -380,7 +375,7 @@ export default function SignupModal(): JSX.Element {
           aria-label="Close"
           onClick={closeModal}
           disabled={isLoading}
-          className="absolute right-[var(--space-md)] top-[var(--space-md)] inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] font-[family-name:var(--font-body)] text-[length:var(--type-sm)] leading-[24px] text-[var(--color-text)] transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+          className="absolute right-[var(--space-md)] top-[var(--space-md)] inline-flex h-11 w-11 items-center justify-center rounded-[var(--radius-round)] border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] font-[family-name:var(--font-body)] text-[length:var(--type-sm)] leading-[24px] text-[var(--color-text)] transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
           style={secondaryButtonStyle}
         >
           ×
@@ -440,7 +435,7 @@ export default function SignupModal(): JSX.Element {
             <div className="space-y-[var(--space-xs)]">
               <label
                 htmlFor="signup-email"
-                className="block font-[family-name:var(--font-body)] text-[length:var(--type-sm)] font-medium leading-[20px] text-[var(--color-text)]"
+                className="block font-[family-name:var(--font-body)] text-[length:14px] font-medium leading-[20px] text-[var(--color-text)]"
               >
                 Email
               </label>
@@ -465,7 +460,7 @@ export default function SignupModal(): JSX.Element {
             <div className="space-y-[var(--space-xs)]">
               <label
                 htmlFor="signup-zip"
-                className="block font-[family-name:var(--font-body)] text-[length:var(--type-sm)] font-medium leading-[20px] text-[var(--color-text)]"
+                className="block font-[family-name:var(--font-body)] text-[length:14px] font-medium leading-[20px] text-[var(--color-text)]"
               >
                 ZIP code
               </label>
@@ -491,7 +486,7 @@ export default function SignupModal(): JSX.Element {
             <div className="space-y-[var(--space-xs)]">
               <label
                 htmlFor="signup-name"
-                className="block font-[family-name:var(--font-body)] text-[length:var(--type-sm)] font-medium leading-[20px] text-[var(--color-text)]"
+                className="block font-[family-name:var(--font-body)] text-[length:14px] font-medium leading-[20px] text-[var(--color-text)]"
               >
                 First name
               </label>
