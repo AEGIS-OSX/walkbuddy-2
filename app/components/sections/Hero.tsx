@@ -25,7 +25,7 @@ const checkingMessage = "Checking ZIP...";
 const successChip = "Service available";
 const successMessage = "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
 const pendingChip = "Join city waitlist";
-const pendingMessage = `We’re not live in this ZIP yet. Join early access and we will notify you when we expand.`;
+const pendingMessage = "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
 
 function getOptimisticStatus(zip: string): ZipStatus {
   if (zip.startsWith("787")) {
@@ -132,75 +132,39 @@ export default function Hero(): JSX.Element {
     >
       <div className="mx-auto grid max-w-screen-xl gap-[var(--space-3xl)] lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] lg:items-center">
         <div className="flex flex-col items-start gap-[var(--space-lg)]">
-          <motion.p
-            className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[1.4] tracking-[0.04em] text-[var(--color-muted)]"
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.05, duration: 0.5, ease: "easeOut" }}
-          >
+          <p className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[1.4] tracking-[0.04em] text-[var(--color-muted)]">
             Background-checked walkers — GPS recaps — Photo proof
-          </motion.p>
+          </p>
 
-          <motion.h1
-            className="max-w-[14ch] font-[family-name:var(--font-display)] text-[length:var(--type-lg)] font-[var(--font-weight-bold)] leading-[1.28] text-[var(--color-text)] lg:text-[length:var(--type-xxl)] lg:leading-[1.15]"
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.15, duration: 0.55, ease: "easeOut" }}
-          >
+          <h1 className="max-w-xl font-[family-name:var(--font-display)] font-[var(--font-weight-bold)] text-[length:var(--type-lg)] leading-[1.28] text-[var(--color-text)] lg:text-[length:var(--type-xxl)] lg:leading-[1.15]">
             Trusted local dog walks, on your schedule.
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            className="max-w-[34rem] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-regular)] leading-[1.47] text-[var(--color-text)]"
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.25, duration: 0.55, ease: "easeOut" }}
-          >
+          <p className="max-w-2xl font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-regular)] leading-[1.47] text-[var(--color-text)]">
             Book a vetted local walker, see photos and live GPS.
-          </motion.p>
+          </p>
 
-          <motion.p
-            className="rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-regular)] leading-[1.38] text-[var(--color-muted)] shadow-[var(--elev-1)]"
-            initial={{ opacity: 0, y: 14 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
-          >
+          <p className="rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-surface)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-regular)] leading-[1.38] text-[var(--color-muted)] shadow-[var(--elev-1)]">
             Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
-          </motion.p>
+          </p>
 
-          <motion.div
-            className="flex w-full flex-col gap-[var(--space-lg)]"
-            initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.55, ease: "easeOut" }}
-          >
+          <div className="flex w-full flex-col gap-[var(--space-lg)]">
             <div className="flex w-full flex-col gap-[var(--space-sm)] sm:flex-row sm:items-center">
-              <motion.button
+              <button
                 type="button"
-                className="min-h-[3rem] w-full rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-semibold)] leading-none text-[var(--color-cta-text)] shadow-[var(--elev-1)] outline-none transition-shadow duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:w-auto sm:min-w-[8.75rem] md:min-h-[3.5rem]"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="min-h-[3rem] w-full rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-semibold)] leading-none text-[var(--color-cta-text)] shadow-[var(--elev-1)] outline-none transition-shadow duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] sm:w-auto sm:min-w-[8.75rem] md:min-h-[3.5rem]"
                 onClick={openSignupModal}
                 aria-haspopup="dialog"
               >
                 Join the Waitlist
-              </motion.button>
+              </button>
 
-              <motion.a
+              <a
                 href="#how-it-works"
-                className="inline-flex min-h-[3rem] items-center justify-center rounded-[var(--radius-md)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] outline-none transition-colors duration-200 ease-out hover:text-[var(--color-accent-text)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:justify-start md:min-h-[3.5rem]"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="inline-flex min-h-[3rem] items-center justify-center rounded-[var(--radius-md)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] outline-none transition-colors duration-200 ease-out hover:text-[var(--color-accent-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] sm:justify-start md:min-h-[3.5rem]"
               >
                 How it works
-              </motion.a>
+              </a>
             </div>
 
             <form
@@ -220,21 +184,18 @@ export default function Hero(): JSX.Element {
                   placeholder="78701"
                   value={zip}
                   onChange={(event: ChangeEvent<HTMLInputElement>) => setZip(event.target.value)}
-                  className="min-h-[2.75rem] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-regular)] leading-[1.47] text-[var(--color-text)] outline-none transition-shadow duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] sm:flex-[1_1_62%]"
+                  className="min-h-[2.75rem] w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-[var(--font-weight-regular)] leading-[1.47] text-[var(--color-text)] outline-none transition-shadow duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] sm:flex-[1_1_62%]"
                   aria-describedby="hero-zip-status"
                   aria-invalid={zipStatus.status === "error"}
                   disabled={zipStatus.status === "checking"}
                 />
-                <motion.button
+                <button
                   type="submit"
-                  className="min-h-[2.75rem] rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-none text-[var(--color-cta-text)] outline-none transition-opacity duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-[0_0_auto]"
-                  whileHover={zipStatus.status === "checking" ? undefined : { scale: 1.02 }}
-                  whileTap={zipStatus.status === "checking" ? undefined : { scale: 0.98 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className="min-h-[2.75rem] rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-none text-[var(--color-cta-text)] outline-none transition-opacity duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-[0_0_auto]"
                   disabled={zipStatus.status === "checking"}
                 >
                   {zipStatus.status === "checking" ? checkingMessage : "Check availability"}
-                </motion.button>
+                </button>
               </div>
 
               <div
@@ -255,21 +216,15 @@ export default function Hero(): JSX.Element {
                 </span>
               </div>
             </form>
-          </motion.div>
+          </div>
         </div>
 
-        <motion.div
-          className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-xs)] shadow-[var(--elev-1)]"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.45, duration: 0.6, ease: "easeOut" }}
-        >
+        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-xs)] shadow-[var(--elev-1)]">
           <ProjectImage id="hero" className="h-auto w-full rounded-[var(--radius-md)]" />
-        </motion.div>
+        </div>
       </div>
 
-      {isModalOpen ? <SignupModal initialZip={zip.trim()} /> : null}
+      {isModalOpen ? <SignupModal /> : null}
     </motion.section>
   );
 }
