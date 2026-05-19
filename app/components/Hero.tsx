@@ -26,6 +26,8 @@ type MarketingSignupResponse = {
 const ZIP_PATTERN = /^\d{5}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FOCUSABLE_SELECTOR = "a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])";
+const MODAL_VALIDATION_ERROR = "Please enter a valid email and a 5-digit ZIP code.";
+const DUPLICATE_MESSAGE = "This ZIP and email are already on our list. We just sent a confirmation.";
 
 function getOptimisticAvailability(zip: string): Exclude<AvailabilityStatus, "duplicate"> {
   return zip.startsWith("787") || zip === "73301" ? "served" : "pending";
@@ -48,6 +50,37 @@ function getUtmParams(): Record<string, string> | undefined {
   return Object.keys(utm).length > 0 ? utm : undefined;
 }
 
+async function postMarketingSignup(payload: MarketingSignupPayload): Promise<AvailabilityStatus> {
+  const response = await fetch("/api/marketing-signups", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  let data: MarketingSignupResponse = {};
+  try {
+    data = (await response.json()) as MarketingSignupResponse;
+  } catch {
+    data = {};
+  }
+
+  if (response.status === 409 || data.availability_status === "duplicate") {
+    return "duplicate";
+  }
+
+  if (!response.ok) {
+    throw new Error("marketing-signup-failed");
+  }
+
+  if (data.availability_status === "served" || data.availability_status === "pending") {
+    return data.availability_status;
+  }
+
+  return getOptimisticAvailability(payload.zip);
+}
+
 export default function Hero() {
   const [zipValue, setZipValue] = useState<string>("");
   const [inlineStatus, setInlineStatus] = useState<InlineStatus>("idle");
@@ -64,7 +97,7 @@ export default function Hero() {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const isInlineInvalid = inlineStatus === "invalid";
-  const isModalValidationError = modalError === "Please enter a valid email and a 5-digit ZIP code.";
+  const isModalValidationError = modalError === MODAL_VALIDATION_ERROR;
   const isModalSuccess = modalStatus === "served" || modalStatus === "pending";
 
   useEffect(() => {
@@ -123,7 +156,7 @@ export default function Hero() {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [isModalOpen]);
+  }, [isModalOpen, isSubmitting]);
 
   function closeModal(): void {
     if (isSubmitting) {
@@ -180,7 +213,7 @@ export default function Hero() {
 
     if (!EMAIL_PATTERN.test(email) || !ZIP_PATTERN.test(zip) || !modalConsent) {
       setModalStatus("error");
-      setModalError("Please enter a valid email and a 5-digit ZIP code.");
+      setModalError(MODAL_VALIDATION_ERROR);
       return;
     }
 
@@ -205,34 +238,14 @@ export default function Hero() {
     setModalError("");
 
     try {
-      const response = await fetch("/api/marketing-signups", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const availabilityStatus = await postMarketingSignup(payload);
 
-      let data: MarketingSignupResponse = {};
-      try {
-        data = (await response.json()) as MarketingSignupResponse;
-      } catch {
-        data = {};
-      }
-
-      if (response.status === 409 || data.availability_status === "duplicate") {
+      if (availabilityStatus === "duplicate") {
         setModalStatus("duplicate");
-        setModalError("This ZIP and email are already on our list. We just sent a confirmation.");
+        setModalError(DUPLICATE_MESSAGE);
         return;
       }
 
-      if (!response.ok) {
-        setModalStatus("error");
-        setModalError("Something went wrong. Please try again.");
-        return;
-      }
-
-      const availabilityStatus = data.availability_status === "served" || data.availability_status === "pending" ? data.availability_status : getOptimisticAvailability(zip);
       setModalStatus(availabilityStatus);
       window.dispatchEvent(new CustomEvent("form_success", { detail: { zip, availability_status: availabilityStatus } }));
     } catch {
@@ -275,7 +288,7 @@ export default function Hero() {
     }
 
     if (inlineStatus === "pending") {
-      return "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
+      return "We’re not live in this ZIP yet. Join early access and we’ll notify you when we expand.";
     }
 
     return "Enter your ZIP to see if we serve your area.";
