@@ -177,17 +177,11 @@ canvas {
 
 /* Base layout */
 .container {
-  max-width: 1200px;
+  width: 100%;
+  max-width: 1120px;
   margin: 0 auto;
-  padding-left: var(--space-md);
-  padding-right: var(--space-md);
-}
-
-@media (min-width: 768px) {
-  .container {
-    padding-left: var(--space-lg);
-    padding-right: var(--space-lg);
-  }
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
 }
 
 /* Typography helpers */
@@ -296,15 +290,16 @@ canvas {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-xs);
-  height: calc(var(--space-lg) + var(--space-xxs));
+  height: 28px;
   padding: 0 var(--space-sm);
   border-radius: var(--radius-round);
-  font-size: var(--type-xs);
-  line-height: calc(var(--type-xs) + var(--space-xxs));
-  font-weight: var(--font-weight-medium);
+  font: var(--font-body) 13px/18px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
+.chip--success,
 .chip-success {
   background: var(--color-accent);
   color: var(--color-accent-text);
@@ -318,14 +313,33 @@ canvas {
 
 /* Focus ring */
 .focus-ring:focus {
-  outline: none;
-  box-shadow: 0 0 0 var(--space-xxs) color-mix(in srgb, var(--color-accent) 18%, transparent);
+  outline: 4px solid rgba(168,230,207,0.18);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 4px solid rgba(168,230,207,0.18);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 /* Sections */
 .section {
   padding-top: var(--space-5xl);
   padding-bottom: var(--space-5xl);
+}
+
+.section-pad {
+  padding-top: var(--space-4xl);
+  padding-bottom: var(--space-4xl);
+}
+
+@media (min-width: 768px) {
+  .section-pad {
+    padding-top: var(--space-5xl);
+    padding-bottom: var(--space-5xl);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -349,6 +363,19 @@ canvas {
     transition: none;
     transform: none !important;
   }
+}
+
+[data-reduced-motion="true"] * {
+  transition: none !important;
+  animation: none !important;
+}
+
+.btn-reset {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
 }
 
 /* Utility extensions */
