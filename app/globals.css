@@ -59,17 +59,40 @@ html {
   text-size-adjust: 100%;
 }
 
+html,
 body {
-  min-height: 100vh;
-  margin: 0;
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
-  font-size: var(--type-body);
-  line-height: 22px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  font-size: var(--type-body);
+  line-height: 22px;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  color: var(--color-text);
+  font-family: var(--font-display);
+}
+
+h1 {
+  font-weight: 700;
+}
+
+h2 {
+  font-weight: 600;
+}
+
+h3 {
+  font-weight: 500;
 }
 
 button,
@@ -85,6 +108,13 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 a {
@@ -123,11 +153,7 @@ canvas {
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
-.focus-ring:focus {
-  outline: none;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
-}
-
+.focus-ring:focus,
 .focus-ring:focus-visible {
   outline: none;
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
@@ -146,15 +172,29 @@ canvas {
   color: inherit;
 }
 
-/* Base text rendering */
-html {
-  scroll-behavior: smooth;
+.section {
+  padding-top: var(--space-5xl);
+  padding-bottom: var(--space-5xl);
 }
 
-body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-body);
+.container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--radius-round);
+  font-size: var(--type-xs);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
 }
 
 /* Container and sections */
@@ -202,10 +242,10 @@ body {
 }
 
 .wb-btn-primary {
+  min-height: 48px;
+  padding: 0 var(--space-lg);
   background: var(--color-cta-bg);
   color: var(--color-cta-text);
-  padding: 0 var(--space-lg);
-  min-height: 48px;
 }
 
 @media (min-width: 1024px) {
@@ -250,6 +290,7 @@ body {
 .wb-chip-muted {
   background: var(--color-surface);
   color: var(--color-muted);
+  border: 1px solid var(--color-border);
 }
 
 /* Inputs */
@@ -259,110 +300,11 @@ body {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: 0 var(--space-md);
-  background: #FFFFFF;
+  background: var(--color-bg);
   font-family: var(--font-body);
   font-size: var(--type-body);
   color: var(--color-text);
   line-height: 22px;
-}
-
-.wb-container {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding-left: var(--space-lg);
-  padding-right: var(--space-lg);
-}
-
-.wb-section {
-  padding-top: var(--space-4xl);
-  padding-bottom: var(--space-4xl);
-}
-
-@media (min-width: 768px) {
-  .wb-section {
-    padding-top: var(--space-5xl);
-    padding-bottom: var(--space-5xl);
-  }
-}
-
-.wb-section-quiet {
-  padding-top: var(--space-3xl);
-  padding-bottom: var(--space-3xl);
-}
-
-.wb-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  font-family: var(--font-display);
-  font-weight: var(--font-weight-semibold);
-  transition: transform 150ms ease-out;
-}
-
-.wb-btn:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
-}
-
-.wb-btn-primary {
-  min-height: 48px;
-  padding: 0 var(--space-lg);
-  background: var(--color-cta-bg);
-  color: var(--color-cta-text);
-}
-
-@media (min-width: 1024px) {
-  .wb-btn-primary {
-    min-height: 56px;
-  }
-}
-
-.wb-btn-primary[disabled] {
-  background: #FFF2D0;
-  color: color-mix(in oklab, var(--color-text) 40%, transparent);
-  cursor: not-allowed;
-  transform: none;
-}
-
-.wb-btn-secondary {
-  background: transparent;
-  color: var(--color-text);
-  border: 1.5px solid var(--color-border);
-  padding: 12px var(--space-lg);
-  min-height: 44px;
-  border-radius: var(--radius-md);
-}
-
-.wb-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: var(--radius-round);
-  font-size: var(--type-xs);
-  line-height: 18px;
-}
-
-.wb-chip-success {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-}
-
-.wb-chip-muted {
-  background: var(--color-surface);
-  color: var(--color-muted);
-  border: 1px solid var(--color-border);
-}
-
-.wb-input {
-  height: 44px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: #FFFFFF;
-  padding: 0 var(--space-md);
-  color: var(--color-text);
 }
 
 .wb-input::placeholder {
@@ -373,82 +315,4 @@ body {
   outline: none;
   border-color: var(--color-accent);
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
-}
-
-.btn-reset {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-}
-
-[data-reduced-motion="true"] * {
-  transition: none !important;
-  animation: none !important;
-}
-
-html,
-body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-h1,
-h2,
-h3 {
-  color: var(--color-text);
-  font-family: var(--font-display);
-}
-
-h1 {
-  font-weight: 700;
-}
-
-h2 {
-  font-weight: 600;
-}
-
-h3 {
-  font-weight: 500;
-}
-
-.focus-ring {
-  outline: none;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
-}
-
-button:focus-visible,
-input:focus-visible,
-a:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
-}
-
-.section {
-  padding-top: var(--space-5xl);
-  padding-bottom: var(--space-5xl);
-}
-
-.container {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding-left: var(--space-lg);
-  padding-right: var(--space-lg);
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 28px;
-  padding: 0 10px;
-  border-radius: var(--radius-round);
-  font-size: var(--type-xs);
-  font-weight: var(--font-weight-medium);
-  background: var(--color-accent);
-  color: var(--color-accent-text);
 }
