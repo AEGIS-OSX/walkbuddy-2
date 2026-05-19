@@ -65,7 +65,7 @@ export default function HeroSection(): JSX.Element {
             WalkBuddy
           </a>
 
-          <div className="flex items-center gap-4 text-sm font-medium" style={{ color: "var(--color-text)", fontFamily: "var(--font-body)" }}>
+          <div className="flex items-center gap-4 font-medium" style={{ color: "var(--color-text)", fontFamily: "var(--font-body)", fontSize: "14px", lineHeight: "20px" }}>
             <a href="#how-it-works" className="hidden transition-opacity duration-200 ease-out hover:opacity-80 focus-visible:outline-none sm:inline-flex">
               How it works
             </a>
@@ -97,57 +97,32 @@ export default function HeroSection(): JSX.Element {
       >
         <div className="container flex flex-col py-16 md:flex-row md:items-center md:py-24" style={{ gap: "var(--space-xl)" }}>
           <div className="flex flex-col items-start md:basis-[58%]">
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.05, duration: 0.45, ease: "easeOut" }}
-              className="max-w-3xl font-bold tracking-[-0.02em] md:text-[length:var(--type-xxl)] md:leading-[48px]"
-              style={{ color: "var(--color-text)", fontFamily: "var(--font-display)", fontSize: "var(--type-lg)", lineHeight: "36px" }}
+            <h1
+              className="max-w-3xl font-bold tracking-[-0.02em]"
+              style={{ color: "var(--color-text)", fontFamily: "var(--font-display)", fontSize: "clamp(28px, 5vw, 40px)", lineHeight: "1.15" }}
             >
               Trusted local dog walks, on your schedule.
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1, duration: 0.45, ease: "easeOut" }}
+            </h1>
+            <p
               className="mt-4 max-w-2xl font-medium"
               style={{ color: "var(--color-text)", fontFamily: "var(--font-display)", fontSize: "var(--type-sm)", lineHeight: "24px" }}
             >
               Book a vetted local walker, see photos and live GPS.
-            </motion.p>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.15, duration: 0.45, ease: "easeOut" }}
+            </p>
+            <p
               className="mt-4 max-w-2xl rounded-full border px-4 py-2 font-medium"
               style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-border)", boxShadow: "var(--elev-1)", color: "var(--color-text)", fontFamily: "var(--font-body)", fontSize: "var(--type-xs)", lineHeight: "18px" }}
             >
               Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
-            </motion.p>
-
-            <motion.p
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.45, ease: "easeOut" }}
+            </p>
+            <p
               className="mt-4 font-medium"
               style={{ color: "var(--color-muted)", fontFamily: "var(--font-body)", fontSize: "var(--type-xs)", lineHeight: "18px" }}
             >
               Background-checked walkers — GPS recaps — Photo proof
-            </motion.p>
+            </p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.25, duration: 0.45, ease: "easeOut" }}
-              className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center"
-            >
+            <div className="mt-6 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
               <motion.button
                 type="button"
                 onClick={() => {
@@ -166,7 +141,6 @@ export default function HeroSection(): JSX.Element {
               >
                 Join the Waitlist
               </motion.button>
-
               <a
                 href="#how-it-works"
                 className="inline-flex h-12 items-center justify-center rounded-xl px-4 font-medium transition-opacity duration-200 ease-out hover:opacity-80 focus-visible:outline-none md:h-14"
@@ -174,13 +148,9 @@ export default function HeroSection(): JSX.Element {
               >
                 How it works
               </a>
-            </motion.div>
+            </div>
 
-            <motion.form
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.45, ease: "easeOut" }}
+            <form
               onSubmit={handleZipSubmit}
               className="mt-8 w-full max-w-xl rounded-xl border p-4"
               style={{ backgroundColor: "var(--color-surface)", borderColor: "var(--color-border)" }}
@@ -213,7 +183,6 @@ export default function HeroSection(): JSX.Element {
                     style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-border)", color: "var(--color-text)", fontFamily: "var(--font-body)", fontSize: "var(--type-body)", lineHeight: "22px" }}
                   />
                 </div>
-
                 <motion.button
                   type="submit"
                   disabled={isChecking}
@@ -227,7 +196,7 @@ export default function HeroSection(): JSX.Element {
                 </motion.button>
               </div>
 
-              <div id="hero-zip-status" aria-live="polite" className="mt-3 min-h-[46px]" style={{ fontFamily: "var(--font-body)", fontSize: "var(--type-xs)", lineHeight: "18px" }}>
+              <div id="hero-zip-status" aria-live="polite" className="mt-3 min-h-12" style={{ fontFamily: "var(--font-body)", fontSize: "var(--type-xs)", lineHeight: "18px" }}>
                 {zipStatus === "idle" ? <p style={{ color: "var(--color-muted)" }}>Enter your ZIP to see if we serve your area.</p> : null}
                 {isInvalid ? <p style={{ color: "var(--color-text)" }}>Please enter a valid 5-digit ZIP code.</p> : null}
                 {isChecking ? <p style={{ color: "var(--color-text)" }}>Checking ZIP...</p> : null}
@@ -248,7 +217,7 @@ export default function HeroSection(): JSX.Element {
                   </div>
                 ) : null}
               </div>
-            </motion.form>
+            </form>
           </div>
 
           <motion.div
@@ -259,7 +228,7 @@ export default function HeroSection(): JSX.Element {
             className="w-full rounded-xl border p-2 md:basis-[42%]"
             style={{ backgroundColor: "var(--color-bg)", borderColor: "var(--color-border)", boxShadow: "var(--elev-2)" }}
           >
-            <ProjectImage id="hero" className="h-auto w-full rounded-xl" fetchpriority="high" />
+            <ProjectImage id="hero" fetchpriority="high" className="h-auto w-full rounded-xl" />
           </motion.div>
         </div>
       </motion.section>
