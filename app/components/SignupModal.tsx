@@ -105,7 +105,7 @@ function collectUtmParams(): StringMap {
   return utm;
 }
 
-export default function SignupModal(props: SignupModalProps): JSX.Element | null {
+export default function SignupModal(props: SignupModalProps): JSX.Element {
   const { open, onClose, prefill } = props;
   const [portalElement, setPortalElement] = useState(null as HTMLElement | null);
   const [email, setEmail] = useState(prefill?.email ?? "");
@@ -360,7 +360,7 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
   };
 
   if (!open || !portalElement) {
-    return null;
+    return <></>;
   }
 
   const isLoading = modalState === "loading";
