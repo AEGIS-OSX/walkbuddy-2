@@ -28,3 +28,23 @@ html, body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
 }
+
+.container { max-width: 1120px; margin: 0 auto; padding-left: var(--space-md); padding-right: var(--space-md); }
+.section { padding-top: var(--space-5xl); padding-bottom: var(--space-5xl); }
+.section-tight { padding-top: var(--space-4xl); padding-bottom: var(--space-4xl); }
+.eyebrow { font-family: var(--font-body); font-size: var(--type-xs); line-height: 1.4; font-weight: var(--font-weight-medium); color: var(--color-muted); letter-spacing: 0.3px; text-transform: none; }
+.headline { font-family: var(--font-display); color: var(--color-text); }
+.subhead { font-family: var(--font-body); color: var(--color-text); opacity: 0.9; }
+.muted { color: var(--color-muted); }
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--elev-1); }
+.btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 var(--space-lg); border-radius: var(--radius-md); font-weight: var(--font-weight-semibold); background: var(--color-cta-bg); color: var(--color-cta-text); transition: transform 0.15s ease-out, opacity 0.2s ease-out; }
+.btn-primary:disabled { background: color-mix(in oklab, var(--color-cta-bg), white 12%); color: color-mix(in oklab, var(--color-cta-text), transparent 60%); cursor: not-allowed; }
+.btn-secondary { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 var(--space-lg); border-radius: var(--radius-md); border: 1.5px solid var(--color-border); background: transparent; color: var(--color-text); font-weight: var(--font-weight-medium); }
+.chip { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: var(--radius-round); font-family: var(--font-body); font-size: var(--type-xs); line-height: 1.4; font-weight: var(--font-weight-medium); }
+.chip-success { background: var(--color-accent); color: var(--color-accent-text); }
+.chip-pending { background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); }
+.input { height: 44px; border-radius: var(--radius-md); border: 1px solid var(--color-border); background: var(--color-bg); padding: 0 var(--space-md); color: var(--color-text); font-family: var(--font-body); }
+.label { font-family: var(--font-body); font-size: 14px; line-height: 20px; font-weight: var(--font-weight-medium); color: var(--color-muted); }
+.helper { font-family: var(--font-body); font-size: var(--type-xs); line-height: 1.4; color: var(--color-muted); }
+.focus-ring:focus-visible { outline: 0; box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent), transparent 82%); }
+@media (prefers-reduced-motion: reduce) { * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; } }
