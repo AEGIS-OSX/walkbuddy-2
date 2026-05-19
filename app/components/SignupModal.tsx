@@ -1,72 +1,83 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
-import type { ChangeEvent, FormEvent, MouseEvent as ReactMouseEvent } from "react";
+import { useState, useEffect, useRef } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
+import { motion } from "framer-motion";
+
+type SignupModalProps = {
+  open: boolean;
+  onClose: () => void;
+  prefill?: {
+    email?: string;
+    zip?: string;
+    name?: string;
+  };
+};
 
 type AvailabilityStatus = "served" | "pending";
-type SignupResult = AvailabilityStatus | "duplicate";
 
-type MarketingSignupResponse = {
-  status: "ok";
-  availability_status: SignupResult;
-  pricing_range: "$18–$25";
-  city?: "Austin";
-  earliest_beta_date?: string;
-  expansion_quarter?: string;
+type ModalState = "idle" | "loading" | "served" | "pending" | "duplicate" | "error";
+
+type InvalidField = "email" | "zip" | "consent";
+
+type MarketingResponse = {
+  availability_status?: AvailabilityStatus;
+  pricing_range?: string;
+  eta_text?: string;
+  duplicate?: boolean;
+  error?: string;
 };
 
-type SignupPayload = {
-  email: string;
-  zip: string;
-  name?: string;
-  consent: boolean;
-  utm?: Record<string, string>;
-  source?: string;
-};
+const MODAL_TITLE = "Check availability";
+const EMAIL_PLACEHOLDER = "you@example.com";
+const ZIP_PLACEHOLDER = "ZIP code";
+const PRIMARY_SUBMIT_LABEL = "Join the Waitlist";
+const SECONDARY_BUTTON_LABEL = "Check availability";
+const VALIDATION_ERROR = "Please enter a valid email and a 5-digit ZIP code.";
+const DUPLICATE_ENTRY = "This ZIP and email are already on our list. We just sent a confirmation.";
+const CHECKING_STATE = "Checking ZIP...";
+const SUCCESS_CHIP = "Service available";
+const SUCCESS_MESSAGE = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
+const PENDING_CHIP = "Join city waitlist";
+const PENDING_MESSAGE = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
+const CONSENT_LABEL = "I agree to receive updates and marketing emails.";
+const FOLLOW_UP_CTA = "View booking details";
 
-type OpenSignupModalDetail = {
-  zip?: string;
-};
-
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const zipPattern = /^\d{5}$/;
-const validationError = "Please enter a valid email and a 5-digit ZIP code.";
-const duplicateMessage = "This ZIP and email are already on our list. We just sent a confirmation.";
-const checkingLabel = "Checking ZIP...";
-const successChip = "Service available";
-const successMessage = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
-const pendingChip = "Join city waitlist";
-const pendingMessage = "We’re not live yet. Join early access and we’ll notify you when we expand.";
-const networkErrorMessage = "We could not complete your signup. Please try again.";
 
-const focusableSelector = [
-  "a[href]",
-  "button:not([disabled])",
-  "input:not([disabled])",
-  "select:not([disabled])",
-  "textarea:not([disabled])",
-  "[tabindex]:not([tabindex=\"-1\"])",
-].join(", ");
-
-function normalizeZip(value: string): string {
-  return value.replace(/\D/g, "").slice(0, 5);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
-function isValidEmail(value: string): boolean {
-  return emailPattern.test(value.trim());
+function readString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }
 
-function isValidZip(value: string): boolean {
-  return zipPattern.test(value.trim());
+function parseMarketingResponse(value: unknown): MarketingResponse {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  const availabilityValue = readString(value.availability_status);
+  const availability = availabilityValue === "served" || availabilityValue === "pending" ? availabilityValue : undefined;
+
+  return {
+    availability_status: availability,
+    pricing_range: readString(value.pricing_range),
+    eta_text: readString(value.eta_text),
+    duplicate: value.duplicate === true,
+    error: readString(value.error),
+  };
 }
 
-function readUtmParams(): Record<string, string> {
+function collectUtmParams(): Record<string, string> {
   const params = new URLSearchParams(window.location.search);
   const utm: Record<string, string> = {};
 
-  params.forEach((value: string, key: string) => {
-    if (key.toLowerCase().startsWith("utm_")) {
+  params.forEach((value, key) => {
+    if (key.startsWith("utm_")) {
       utm[key] = value;
     }
   });
@@ -74,251 +85,178 @@ function readUtmParams(): Record<string, string> {
   return utm;
 }
 
-function getLocalAvailability(zip: string): AvailabilityStatus {
-  return zip.startsWith("787") ? "served" : "pending";
-}
-
-function isOpenSignupModalDetail(value: unknown): value is OpenSignupModalDetail {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const record = value as Record<string, unknown>;
-
-  return record.zip === undefined || typeof record.zip === "string";
-}
-
-function isMarketingSignupResponse(value: unknown): value is MarketingSignupResponse {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const record = value as Record<string, unknown>;
-  const validAvailability = record.availability_status === "served"
-    || record.availability_status === "pending"
-    || record.availability_status === "duplicate";
-
-  return record.status === "ok"
-    && validAvailability
-    && record.pricing_range === "$18–$25";
-}
-
-async function parseMarketingResponse(response: Response): Promise<MarketingSignupResponse | null> {
-  try {
-    const body: unknown = await response.json();
-
-    return isMarketingSignupResponse(body) ? body : null;
-  } catch {
-    return null;
-  }
-}
-
-export default function SignupModal() {
-  const prefersReducedMotion = useReducedMotion();
-  const titleId = useId();
-  const descriptionId = useId();
-  const statusId = useId();
-  const dialogRef = useRef<HTMLElement | null>(null);
-  const emailInputRef = useRef<HTMLInputElement | null>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-
-  const [isOpen, setIsOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [zip, setZip] = useState("");
-  const [name, setName] = useState("");
+export default function SignupModal(props: SignupModalProps): JSX.Element | null {
+  const { open, onClose, prefill } = props;
+  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+  const [email, setEmail] = useState(prefill?.email ?? "");
+  const [zip, setZip] = useState(prefill?.zip ?? "");
+  const [name, setName] = useState(prefill?.name ?? "");
   const [consent, setConsent] = useState(false);
-  const [result, setResult] = useState<SignupResult | null>(null);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+  const [modalState, setModalState] = useState<ModalState>("idle");
+  const [validationMessage, setValidationMessage] = useState("");
+  const [submitErrorTarget, setSubmitErrorTarget] = useState<InvalidField | null>(null);
+  const [pricingRange, setPricingRange] = useState<string | null>(null);
+  const [etaText, setEtaText] = useState<string | null>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const trimmedEmail = email.trim();
-  const trimmedZip = zip.trim();
-  const emailValid = isValidEmail(trimmedEmail);
-  const zipValid = isValidZip(trimmedZip);
-  const busy = isSubmitting || isChecking;
-  const served = result === "served";
-  const pending = result === "pending";
-  const duplicate = result === "duplicate";
-
-  const clearFeedback = useCallback((): void => {
-    setError("");
-    setResult(null);
-  }, []);
-
-  const closeModal = useCallback((): void => {
-    if (!busy) {
-      setIsOpen(false);
-    }
-  }, [busy]);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const initialFocusRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const zipRef = useRef<HTMLInputElement>(null);
+  const consentRef = useRef<HTMLInputElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    function handleOpenSignupModal(event: Event): void {
-      const detail = event instanceof CustomEvent && isOpenSignupModalDetail(event.detail) ? event.detail : undefined;
+    setPortalElement(document.getElementById("portal-root") ?? document.body);
 
-      previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      setIsOpen(true);
-      setResult(null);
-      setError("");
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = (): void => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
 
-      if (detail?.zip) {
-        setZip(normalizeZip(detail.zip));
-      }
-    }
-
-    window.addEventListener("open-signup-modal", handleOpenSignupModal);
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
 
     return () => {
-      window.removeEventListener("open-signup-modal", handleOpenSignupModal);
+      mediaQuery.removeEventListener("change", updatePreference);
     };
   }, []);
 
   useEffect(() => {
-    if (!isOpen) {
-      previousFocusRef.current?.focus();
+    if (!open) {
       return;
     }
 
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const focusTimer = window.setTimeout(() => {
-      emailInputRef.current?.focus();
-    }, 0);
-
-    return () => {
-      window.clearTimeout(focusTimer);
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent): void {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        closeModal();
-        return;
-      }
-
-      if (event.key !== "Tab" || !dialogRef.current) {
-        return;
-      }
-
-      const focusableElements = Array.from(dialogRef.current.querySelectorAll(focusableSelector)).filter(
-        (element): element is HTMLElement => element instanceof HTMLElement
-          && !element.hasAttribute("disabled")
-          && element.getAttribute("aria-hidden") !== "true",
-      );
-
-      if (focusableElements.length === 0) {
-        event.preventDefault();
-        dialogRef.current.focus();
-        return;
-      }
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-      const activeElement = document.activeElement;
-
-      if (!dialogRef.current.contains(activeElement)) {
-        event.preventDefault();
-        firstElement.focus();
-        return;
-      }
-
-      if (event.shiftKey && activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      }
-
-      if (!event.shiftKey && activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [closeModal, isOpen]);
-
-  function handleOverlayMouseDown(): void {
-    closeModal();
-  }
-
-  function handleDialogMouseDown(event: ReactMouseEvent<HTMLElement>): void {
-    event.stopPropagation();
-  }
-
-  function handleEmailChange(event: ChangeEvent<HTMLInputElement>): void {
-    setEmail(event.target.value);
-    clearFeedback();
-  }
-
-  function handleZipChange(event: ChangeEvent<HTMLInputElement>): void {
-    setZip(normalizeZip(event.target.value));
-    clearFeedback();
-  }
-
-  function handleNameChange(event: ChangeEvent<HTMLInputElement>): void {
-    setName(event.target.value);
-    clearFeedback();
-  }
-
-  function handleConsentChange(event: ChangeEvent<HTMLInputElement>): void {
-    setConsent(event.target.checked);
-    setError("");
-  }
-
-  async function handleAvailabilityCheck(): Promise<void> {
-    if (!zipValid) {
-      setResult(null);
-      setError(validationError);
-      return;
-    }
-
-    setError("");
-    setResult(null);
-    setIsChecking(true);
+    setEmail(prefill?.email ?? "");
+    setZip(prefill?.zip ?? "");
+    setName(prefill?.name ?? "");
+    setConsent(false);
+    setModalState("idle");
+    setValidationMessage("");
+    setSubmitErrorTarget(null);
+    setPricingRange(null);
+    setEtaText(null);
 
     window.setTimeout(() => {
-      setResult(getLocalAvailability(trimmedZip));
-      setIsChecking(false);
-    }, prefersReducedMotion ? 0 : 240);
-  }
+      initialFocusRef.current?.focus();
+    }, 0);
+  }, [open, prefill?.email, prefill?.name, prefill?.zip]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault();
-
-    if (!emailValid || !zipValid || !consent) {
-      setResult(null);
-      setError(validationError);
+  useEffect(() => {
+    if (!submitErrorTarget) {
       return;
     }
 
-    const utm = readUtmParams();
-    const source = document.referrer.trim();
-    const payload: SignupPayload = {
-      email: trimmedEmail,
-      zip: trimmedZip,
-      ...(name.trim().length > 0 ? { name: name.trim() } : {}),
-      consent,
-      ...(Object.keys(utm).length > 0 ? { utm } : {}),
-      ...(source.length > 0 ? { source } : {}),
+    if (submitErrorTarget === "email") {
+      emailRef.current?.focus();
+    }
+
+    if (submitErrorTarget === "zip") {
+      zipRef.current?.focus();
+    }
+
+    if (submitErrorTarget === "consent") {
+      consentRef.current?.focus();
+    }
+  }, [submitErrorTarget, validationMessage]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const closeModal = (): void => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    onClose();
+  };
+
+  const completeSubmission = (availability: AvailabilityStatus, response: MarketingResponse = {}): void => {
+    setModalState(availability);
+    setValidationMessage("");
+    setPricingRange(response.pricing_range ?? null);
+    setEtaText(response.eta_text ?? null);
+
+    window.dispatchEvent(
+      new CustomEvent("form_success", {
+        detail: {
+          zip,
+          availability,
+        },
+      }),
+    );
+
+    closeTimerRef.current = window.setTimeout(() => {
+      onClose();
+
+      if (window.location.hash.toLowerCase().includes("thank-you")) {
+        window.location.assign("/thank-you");
+      }
+    }, 1200);
+  };
+
+  const validateForm = (): InvalidField | null => {
+    const trimmedEmail = email.trim();
+    const trimmedZip = zip.trim();
+
+    if (!emailPattern.test(trimmedEmail)) {
+      return "email";
+    }
+
+    if (!zipPattern.test(trimmedZip)) {
+      return "zip";
+    }
+
+    if (!consent) {
+      return "consent";
+    }
+
+    return null;
+  };
+
+  const submitSignup = async (): Promise<void> => {
+    const invalidField = validateForm();
+
+    if (invalidField) {
+      setModalState("error");
+      setValidationMessage(VALIDATION_ERROR);
+      setSubmitErrorTarget(invalidField);
+      return;
+    }
+
+    setModalState("loading");
+    setValidationMessage("");
+    setSubmitErrorTarget(null);
+
+    const payload = {
+      email: email.trim(),
+      zip: zip.trim(),
+      name: name.trim() ? name.trim() : undefined,
+      utm: collectUtmParams(),
+      source: "landing",
     };
 
-    setError("");
-    setResult(null);
-    setIsSubmitting(true);
-
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_MARKETING_API_BASE}/marketing-signups`, {
+      const response = await fetch("/api/marketing-signups", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -326,252 +264,287 @@ export default function SignupModal() {
         body: JSON.stringify(payload),
       });
 
-      const parsedResponse = await parseMarketingResponse(response);
-
-      if (response.status === 409 || parsedResponse?.availability_status === "duplicate") {
-        setResult("duplicate");
+      if (response.status === 409) {
+        setModalState("duplicate");
+        setValidationMessage(DUPLICATE_ENTRY);
         return;
       }
 
-      if (response.status === 400) {
-        setError(validationError);
+      if (response.status === 404) {
+        completeSubmission("pending");
         return;
       }
 
-      if (!response.ok) {
-        setError(networkErrorMessage);
+      const data = parseMarketingResponse(await response.json().catch(() => null));
+
+      if (data.duplicate || data.error === "duplicate") {
+        setModalState("duplicate");
+        setValidationMessage(DUPLICATE_ENTRY);
         return;
       }
 
-      const availabilityStatus = parsedResponse?.availability_status === "served" || parsedResponse?.availability_status === "pending"
-        ? parsedResponse.availability_status
-        : getLocalAvailability(trimmedZip);
-
-      setResult(availabilityStatus);
-      window.dispatchEvent(
-        new CustomEvent("wb:form_success", {
-          detail: {
-            availability_status: availabilityStatus,
-            zip: trimmedZip,
-            utm,
-          },
-        }),
-      );
+      completeSubmission(data.availability_status ?? "pending", data);
     } catch {
-      setError(networkErrorMessage);
-    } finally {
-      setIsSubmitting(false);
+      completeSubmission("pending");
     }
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    void submitSignup();
+  };
+
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLDialogElement>): void => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeModal();
+      return;
+    }
+
+    if (event.key !== "Tab") {
+      return;
+    }
+
+    const focusableSelector = "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"] )";
+    const focusableElements = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? []).filter(
+      (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true",
+    );
+
+    if (focusableElements.length === 0) {
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+    }
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  };
+
+  const handleOverlayMouseDown = (event: React.MouseEvent<HTMLDivElement>): void => {
+    if (event.target === event.currentTarget) {
+      closeModal();
+    }
+  };
+
+  const goToBookingDetails = (): void => {
+    window.location.assign("/thank-you");
+  };
+
+  if (!open || !portalElement) {
+    return null;
   }
 
-  return (
-    <AnimatePresence>
-      {isOpen ? (
-        <motion.div
-          className="fixed inset-0 z-50 flex min-h-dvh items-end justify-center bg-[var(--color-text)]/40 px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)] backdrop-blur-sm sm:items-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: prefersReducedMotion ? 0.01 : 0.2, ease: "easeOut" }}
-          onMouseDown={handleOverlayMouseDown}
-        >
-          <motion.section
-            ref={dialogRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            aria-describedby={descriptionId}
-            tabIndex={-1}
-            className="w-full max-w-xl origin-center overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-lg)] text-[var(--color-text)] shadow-[var(--elev-2)] outline-none sm:p-[var(--space-xl)]"
-            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: prefersReducedMotion ? 0 : 12 }}
-            transition={{ duration: prefersReducedMotion ? 0.01 : 0.6, ease: "easeOut" }}
-            onMouseDown={handleDialogMouseDown}
+  const isLoading = modalState === "loading";
+  const hasSuccessState = modalState === "served" || modalState === "pending";
+  const statusChip = modalState === "served" ? SUCCESS_CHIP : PENDING_CHIP;
+  const statusMessage = modalState === "served" ? SUCCESS_MESSAGE : PENDING_MESSAGE;
+
+  return createPortal(
+    <motion.div
+      className="fixed inset-0 z-[100] flex min-h-screen items-end justify-center bg-[color-mix(in_srgb,var(--color-text)_36%,transparent)] px-[var(--space-md)] py-[var(--space-lg)] sm:items-center"
+      initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: "easeOut" }}
+      onMouseDown={handleOverlayMouseDown}
+    >
+      <motion.dialog
+        ref={dialogRef}
+        id="signup-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="signup-modal-title"
+        aria-describedby="signup-modal-description"
+        open
+        onKeyDown={handleDialogKeyDown}
+        className="m-0 w-full max-w-[36rem] border border-[color:var(--color-border)] bg-[var(--color-bg)] p-0 text-[var(--color-text)] backdrop:bg-[transparent]"
+        initial={prefersReducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: prefersReducedMotion ? 0 : 0.5, ease: "easeOut" }}
+      >
+        <div className="bg-[var(--color-bg)] rounded-[var(--radius-md)] shadow-[var(--elev-2)] p-6 md:p-8 text-[var(--color-text)]">
+          <div className="flex items-start justify-between gap-[var(--space-md)]">
+            <div className="space-y-[var(--space-xs)]">
+              <p className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-muted)]">
+                WalkBuddy early access
+              </p>
+              <h2
+                id="signup-modal-title"
+                className="font-[family-name:var(--font-display)] text-[length:var(--type-md)] font-semibold leading-[30px] text-[var(--color-text)] md:text-[length:var(--type-lg)] md:leading-[36px]"
+              >
+                {MODAL_TITLE}
+              </h2>
+            </div>
+            <button
+              type="button"
+              aria-label="Close signup modal"
+              onClick={closeModal}
+              className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[var(--radius-round)] border border-[color:var(--color-border)] bg-[var(--color-bg)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] active:scale-[0.98]"
+            >
+              ×
+            </button>
+          </div>
+
+          <p
+            id="signup-modal-description"
+            className="mt-[var(--space-sm)] max-w-[32rem] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-normal leading-[22px] text-[var(--color-muted)]"
           >
-            <header className="flex items-start justify-between gap-[var(--space-md)]">
-              <div className="min-w-0 space-y-[var(--space-xs)]">
-                <p
-                  id={descriptionId}
-                  className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]"
-                >
-                  WalkBuddy early access
-                </p>
-                <h2
-                  id={titleId}
-                  className="font-[family-name:var(--font-display)] text-[length:var(--type-md)] font-[var(--font-weight-semibold)] leading-[30px] tracking-[-0.02em] text-[var(--color-text)]"
-                >
-                  Check availability
-                </h2>
-              </div>
+            Enter your email and ZIP to confirm whether WalkBuddy serves your area.
+          </p>
+
+          <form className="mt-[var(--space-lg)] space-y-[var(--space-md)]" onSubmit={handleSubmit} noValidate>
+            <div className="space-y-[var(--space-xs)]">
+              <label
+                htmlFor="signup-email"
+                className="block font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[20px] text-[var(--color-text)]"
+              >
+                Email
+              </label>
+              <input
+                ref={(node) => {
+                  emailRef.current = node;
+                  initialFocusRef.current = node;
+                }}
+                id="signup-email"
+                name="email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder={EMAIL_PLACEHOLDER}
+                value={email}
+                onChange={(event) => setEmail(event.currentTarget.value)}
+                aria-invalid={submitErrorTarget === "email"}
+                aria-describedby="signup-status"
+                disabled={isLoading}
+                className="h-11 w-full rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] transition-[border-color,box-shadow] duration-200 ease-out focus-visible:border-[color:var(--color-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </div>
+
+            <div className="space-y-[var(--space-xs)]">
+              <label
+                htmlFor="signup-zip"
+                className="block font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[20px] text-[var(--color-text)]"
+              >
+                ZIP code
+              </label>
+              <input
+                ref={zipRef}
+                id="signup-zip"
+                name="zip"
+                type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={5}
+                placeholder={ZIP_PLACEHOLDER}
+                value={zip}
+                onChange={(event) => setZip(event.currentTarget.value.replace(/\D/g, "").slice(0, 5))}
+                aria-invalid={submitErrorTarget === "zip"}
+                aria-describedby="signup-status"
+                disabled={isLoading}
+                className="h-11 w-full rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] transition-[border-color,box-shadow] duration-200 ease-out focus-visible:border-[color:var(--color-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </div>
+
+            <div className="space-y-[var(--space-xs)]">
+              <label
+                htmlFor="signup-name"
+                className="block font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[20px] text-[var(--color-text)]"
+              >
+                Name
+              </label>
+              <input
+                id="signup-name"
+                name="name"
+                type="text"
+                autoComplete="given-name"
+                placeholder="First name"
+                value={name}
+                onChange={(event) => setName(event.currentTarget.value)}
+                disabled={isLoading}
+                className="h-11 w-full rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] transition-[border-color,box-shadow] duration-200 ease-out focus-visible:border-[color:var(--color-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
+              />
+            </div>
+
+            <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-sm)] border border-[color:var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+              <input
+                ref={consentRef}
+                type="checkbox"
+                checked={consent}
+                onChange={(event) => setConsent(event.currentTarget.checked)}
+                aria-invalid={submitErrorTarget === "consent"}
+                disabled={isLoading}
+                className="mt-[var(--space-xxs)] h-5 w-5 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] accent-[var(--color-primary)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
+              />
+              <span>{CONSENT_LABEL}</span>
+            </label>
+
+            <div className="flex flex-col gap-[var(--space-sm)] pt-[var(--space-xs)] sm:flex-row sm:items-center">
+              <motion.button
+                type="submit"
+                disabled={isLoading}
+                whileHover={prefersReducedMotion || isLoading ? undefined : { scale: 1.02 }}
+                whileTap={prefersReducedMotion || isLoading ? undefined : { scale: 0.98 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-primary)] px-8 font-[family-name:var(--font-display)] text-[length:var(--type-body)] font-semibold leading-[22px] text-[var(--color-text)] shadow-none transition-[filter] duration-200 ease-out hover:brightness-[0.99] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+              >
+                {isLoading ? CHECKING_STATE : PRIMARY_SUBMIT_LABEL}
+              </motion.button>
+
               <button
                 type="button"
-                aria-label="Close signup modal"
-                disabled={busy}
-                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] font-[family-name:var(--font-display)] text-[length:var(--type-sm)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] transition duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={closeModal}
+                onClick={() => void submitSignup()}
+                disabled={isLoading}
+                className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[transparent] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] font-medium leading-[22px] text-[var(--color-text)] underline decoration-[color:var(--color-accent)] decoration-2 underline-offset-4 transition-transform duration-200 ease-out hover:scale-[1.01] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
               >
-                ×
+                {SECONDARY_BUTTON_LABEL}
               </button>
-            </header>
+            </div>
+          </form>
 
-            <form
-              className="mt-[var(--space-lg)] flex flex-col gap-[var(--space-md)]"
-              noValidate
-              aria-describedby={statusId}
-              onSubmit={handleSubmit}
-            >
-              <label className="block space-y-[var(--space-xs)]">
-                <span className="sr-only">Email</span>
-                <input
-                  ref={emailInputRef}
-                  type="email"
-                  required
-                  aria-label="Email"
-                  aria-invalid={error === validationError && !emailValid}
-                  aria-describedby={statusId}
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  disabled={busy}
-                  className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] caret-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40 disabled:cursor-not-allowed disabled:bg-[var(--color-surface)] disabled:opacity-70"
-                  onChange={handleEmailChange}
-                />
-              </label>
+          <div
+            id="signup-status"
+            aria-live="polite"
+            className="mt-[var(--space-md)] min-h-[3.5rem] rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)]"
+          >
+            {isLoading ? <p>{CHECKING_STATE}</p> : null}
 
-              <div className="grid gap-[var(--space-md)] sm:grid-cols-2">
-                <label className="block space-y-[var(--space-xs)]">
-                  <span className="sr-only">ZIP code</span>
-                  <input
-                    type="text"
-                    required
-                    aria-label="ZIP code"
-                    aria-invalid={error === validationError && !zipValid}
-                    aria-describedby={statusId}
-                    inputMode="numeric"
-                    maxLength={5}
-                    autoComplete="postal-code"
-                    placeholder="ZIP code"
-                    value={zip}
-                    disabled={busy}
-                    className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] caret-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40 disabled:cursor-not-allowed disabled:bg-[var(--color-surface)] disabled:opacity-70"
-                    onChange={handleZipChange}
-                  />
-                </label>
+            {validationMessage ? (
+              <p className="font-medium text-[var(--color-text)]">{validationMessage}</p>
+            ) : null}
 
-                <label className="block space-y-[var(--space-xs)]">
-                  <span className="sr-only">First name</span>
-                  <input
-                    type="text"
-                    aria-label="First name"
-                    autoComplete="given-name"
-                    placeholder="First name (optional)"
-                    value={name}
-                    disabled={busy}
-                    className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] caret-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40 disabled:cursor-not-allowed disabled:bg-[var(--color-surface)] disabled:opacity-70"
-                    onChange={handleNameChange}
-                  />
-                </label>
-              </div>
-
-              <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
-                <input
-                  type="checkbox"
-                  required
-                  checked={consent}
-                  disabled={busy}
-                  aria-describedby={statusId}
-                  className="mt-[var(--space-xxs)] min-h-4 min-w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-60"
-                  onChange={handleConsentChange}
-                />
-                <span className="text-[var(--color-text)]">
-                  I agree to receive WalkBuddy availability and early access emails.
+            {hasSuccessState ? (
+              <div className="space-y-[var(--space-sm)]">
+                <span className="inline-flex rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] py-[var(--space-xxs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)]">
+                  {statusChip}
                 </span>
-              </label>
-
-              <div className="flex flex-col gap-[var(--space-sm)] sm:flex-row sm:items-center">
-                <motion.button
-                  type="submit"
-                  aria-busy={isSubmitting}
-                  disabled={busy}
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-[length:var(--type-body)] font-[var(--font-weight-semibold)] leading-[22px] text-[var(--color-cta-text)] shadow-[var(--elev-1)] transition duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-text)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:bg-[var(--color-surface)] disabled:text-[var(--color-muted)] sm:w-auto lg:min-h-14"
-                  whileHover={!busy && !prefersReducedMotion ? { scale: 1.02 } : undefined}
-                  whileTap={!busy && !prefersReducedMotion ? { scale: 0.98 } : undefined}
-                >
-                  {isSubmitting ? checkingLabel : "Join the Waitlist"}
-                </motion.button>
-
-                <motion.button
+                <p>{statusMessage}</p>
+                {pricingRange ? <p className="text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">Estimated pricing: {pricingRange}</p> : null}
+                {etaText ? <p className="text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">Timeline: {etaText}</p> : null}
+                <button
                   type="button"
-                  aria-busy={isChecking}
-                  disabled={busy}
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-lg)] font-[family-name:var(--font-display)] text-[length:var(--type-body)] font-[var(--font-weight-medium)] leading-[22px] text-[var(--color-text)] transition duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                  whileHover={!busy && !prefersReducedMotion ? { scale: 1.02 } : undefined}
-                  whileTap={!busy && !prefersReducedMotion ? { scale: 0.98 } : undefined}
-                  onClick={handleAvailabilityCheck}
+                  onClick={goToBookingDetails}
+                  className="inline-flex h-11 items-center justify-center rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)] transition-transform duration-200 ease-out hover:scale-[1.02] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] active:scale-[0.98]"
                 >
-                  {isChecking ? checkingLabel : "Check availability"}
-                </motion.button>
+                  {FOLLOW_UP_CTA}
+                </button>
               </div>
+            ) : null}
 
-              <div
-                id={statusId}
-                className="min-h-20 space-y-[var(--space-sm)]"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {busy ? (
-                  <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)]">
-                    <div className="h-2 w-2/3 animate-pulse rounded-[var(--radius-round)] bg-[var(--color-accent)]"></div>
-                    <p className="mt-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
-                      Checking ZIP...
-                    </p>
-                  </div>
-                ) : null}
-
-                {error ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
-                    {error}
-                  </p>
-                ) : null}
-
-                {duplicate ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
-                    {duplicateMessage}
-                  </p>
-                ) : null}
-
-                {served || pending ? (
-                  <motion.div
-                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)] shadow-[var(--elev-1)]"
-                    initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: prefersReducedMotion ? 0.01 : 0.24, ease: "easeOut" }}
-                  >
-                    <div className="flex flex-wrap items-center gap-[var(--space-sm)]">
-                      <span className={served ? "inline-flex min-h-7 items-center rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] font-[family-name:var(--font-display)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-accent-text)]" : "inline-flex min-h-7 items-center rounded-[var(--radius-round)] bg-[var(--color-surface)] px-[var(--space-sm)] font-[family-name:var(--font-display)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)]"}>
-                        {served ? successChip : pendingChip}
-                      </span>
-
-                      {served ? (
-                        <a
-                          href="/thank-you?availability=served"
-                          className="rounded-[var(--radius-sm)] font-[family-name:var(--font-display)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4 transition duration-200 ease-out hover:decoration-[var(--color-text)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
-                        >
-                          View booking details
-                        </a>
-                      ) : null}
-                    </div>
-                    <p className="mt-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
-                      {served ? successMessage : pendingMessage}
-                    </p>
-                  </motion.div>
-                ) : null}
-              </div>
-            </form>
-          </motion.section>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+            {!isLoading && !validationMessage && !hasSuccessState ? (
+              <p className="text-[var(--color-muted)]">Enter your ZIP to see if we serve your area.</p>
+            ) : null}
+          </div>
+        </div>
+      </motion.dialog>
+    </motion.div>,
+    portalElement,
   );
 }
