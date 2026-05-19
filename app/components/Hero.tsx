@@ -19,6 +19,7 @@ type MarketingSignupPayload = {
 
 type MarketingSignupResponse = {
   availability_status?: AvailabilityStatus;
+  status?: AvailabilityStatus;
   earliest_beta?: string;
   pricing_range?: string;
 };
@@ -26,8 +27,23 @@ type MarketingSignupResponse = {
 const ZIP_PATTERN = /^\d{5}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const FOCUSABLE_SELECTOR = "a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])";
+const INLINE_VALIDATION_MESSAGE = "Please enter a valid 5-digit ZIP code.";
+const CHECKING_MESSAGE = "Checking ZIP...";
+const SERVICE_AVAILABLE_CHIP = "Service available";
+const CITY_WAITLIST_CHIP = "Join city waitlist";
+const INLINE_SERVED_MESSAGE = "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
+const INLINE_PENDING_MESSAGE = "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
 const MODAL_VALIDATION_ERROR = "Please enter a valid email and a 5-digit ZIP code.";
 const DUPLICATE_MESSAGE = "This ZIP and email are already on our list. We just sent a confirmation.";
+const MODAL_SERVED_MESSAGE = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
+const MODAL_PENDING_MESSAGE = "We’re not live yet. Join early access and we’ll notify you when we expand.";
+
+const heroEntrance = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const heroTransition = { duration: 0.6, ease: "easeOut" as const };
 
 function getOptimisticAvailability(zip: string): Exclude<AvailabilityStatus, "duplicate"> {
   return zip.startsWith("787") || zip === "73301" ? "served" : "pending";
@@ -66,7 +82,9 @@ async function postMarketingSignup(payload: MarketingSignupPayload): Promise<Ava
     data = {};
   }
 
-  if (response.status === 409 || data.availability_status === "duplicate") {
+  const responseStatus = data.availability_status ?? data.status;
+
+  if (response.status === 409 || responseStatus === "duplicate") {
     return "duplicate";
   }
 
@@ -74,8 +92,8 @@ async function postMarketingSignup(payload: MarketingSignupPayload): Promise<Ava
     throw new Error("marketing-signup-failed");
   }
 
-  if (data.availability_status === "served" || data.availability_status === "pending") {
-    return data.availability_status;
+  if (responseStatus === "served" || responseStatus === "pending") {
+    return responseStatus;
   }
 
   return getOptimisticAvailability(payload.zip);
@@ -264,11 +282,11 @@ export default function Hero() {
 
   function getInlineChipText(): string {
     if (inlineStatus === "served") {
-      return "Service available";
+      return SERVICE_AVAILABLE_CHIP;
     }
 
     if (inlineStatus === "pending") {
-      return "Join city waitlist";
+      return CITY_WAITLIST_CHIP;
     }
 
     return "";
@@ -276,19 +294,19 @@ export default function Hero() {
 
   function getInlineMessage(): string {
     if (inlineStatus === "invalid") {
-      return "Please enter a valid 5-digit ZIP code.";
+      return INLINE_VALIDATION_MESSAGE;
     }
 
     if (inlineStatus === "checking") {
-      return "Checking ZIP...";
+      return CHECKING_MESSAGE;
     }
 
     if (inlineStatus === "served") {
-      return "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
+      return INLINE_SERVED_MESSAGE;
     }
 
     if (inlineStatus === "pending") {
-      return "We’re not live in this ZIP yet. Join early access and we’ll notify you when we expand.";
+      return INLINE_PENDING_MESSAGE;
     }
 
     return "Enter your ZIP to see if we serve your area.";
@@ -296,11 +314,11 @@ export default function Hero() {
 
   function getModalChipText(): string {
     if (modalStatus === "served") {
-      return "Service available";
+      return SERVICE_AVAILABLE_CHIP;
     }
 
     if (modalStatus === "pending") {
-      return "Join city waitlist";
+      return CITY_WAITLIST_CHIP;
     }
 
     return "";
@@ -308,11 +326,11 @@ export default function Hero() {
 
   function getModalMessage(): string {
     if (modalStatus === "served") {
-      return "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
+      return MODAL_SERVED_MESSAGE;
     }
 
     if (modalStatus === "pending") {
-      return "We’re not live yet. Join early access and we’ll notify you when we expand.";
+      return MODAL_PENDING_MESSAGE;
     }
 
     return "";
@@ -321,20 +339,24 @@ export default function Hero() {
   return (
     <motion.section
       className="bg-[var(--color-bg)] px-[var(--space-lg)] py-[var(--space-4xl)] text-[var(--color-text)] md:py-[var(--space-5xl)]"
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      initial="hidden"
+      animate="visible"
+      variants={heroEntrance}
+      transition={heroTransition}
       aria-labelledby="hero-title"
     >
       <div className="mx-auto grid w-full max-w-[1120px] grid-cols-1 gap-[var(--space-xl)] lg:grid-cols-[minmax(0,58fr)_minmax(0,42fr)] lg:items-center">
-        <div className="flex flex-col gap-[var(--space-lg)]">
+        <motion.div
+          className="flex flex-col gap-[var(--space-lg)]"
+          initial="hidden"
+          animate="visible"
+          variants={heroEntrance}
+          transition={{ ...heroTransition, delay: 0.05 }}
+        >
           <motion.p
             className="font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] tracking-[0.2px] text-[var(--color-muted)]"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.05 }}
+            variants={heroEntrance}
+            transition={{ ...heroTransition, delay: 0.05 }}
           >
             Background-checked walkers — GPS recaps — Photo proof.
           </motion.p>
@@ -342,30 +364,24 @@ export default function Hero() {
           <motion.h1
             id="hero-title"
             className="max-w-[12ch] font-[family-name:var(--font-display)] text-[28px] font-bold leading-[36px] text-[var(--color-text)] lg:text-[var(--type-xxl)] lg:leading-[48px]"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.15 }}
+            variants={heroEntrance}
+            transition={{ ...heroTransition, delay: 0.15 }}
           >
             Trusted local dog walks, on your schedule.
           </motion.h1>
 
           <motion.p
             className="max-w-[36rem] font-[family-name:var(--font-body)] text-[var(--type-body)] leading-[22px] text-[var(--color-text)] md:text-[16px] md:leading-[24px]"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
+            variants={heroEntrance}
+            transition={{ ...heroTransition, delay: 0.25 }}
           >
             Book a vetted local walker, see photos and GPS proof.
           </motion.p>
 
           <motion.p
             className="w-fit rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-sm)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[13px] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
+            variants={heroEntrance}
+            transition={{ ...heroTransition, delay: 0.3 }}
           >
             Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
           </motion.p>
@@ -373,10 +389,8 @@ export default function Hero() {
           <motion.form
             className="flex w-full max-w-[40rem] flex-col gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)]"
             onSubmit={handleInlineZipSubmit}
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.35 }}
+            variants={heroEntrance}
+            transition={{ ...heroTransition, delay: 0.35 }}
           >
             <label className="font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-muted)]" htmlFor="hero-zip">
               ZIP code
@@ -401,7 +415,7 @@ export default function Hero() {
                 whileTap={{ scale: 0.98 }}
                 disabled={inlineStatus === "checking"}
               >
-                {inlineStatus === "checking" ? "Checking ZIP..." : "Check availability"}
+                {inlineStatus === "checking" ? CHECKING_MESSAGE : "Check availability"}
               </motion.button>
             </div>
             <div className="flex min-h-[28px] flex-wrap items-center gap-[var(--space-xs)]" aria-live="polite" id="hero-zip-status">
@@ -416,10 +430,8 @@ export default function Hero() {
 
           <motion.div
             className="flex flex-col gap-[var(--space-sm)] sm:flex-row"
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+            variants={heroEntrance}
+            transition={{ ...heroTransition, delay: 0.4 }}
           >
             <motion.button
               id="signup"
@@ -440,14 +452,14 @@ export default function Hero() {
               How it works
             </motion.a>
           </motion.div>
-        </div>
+        </motion.div>
 
         <motion.div
           className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-xs)] shadow-[var(--elev-2)] [&_img]:aspect-[4/3] [&_img]:h-auto [&_img]:w-full [&_img]:rounded-[var(--radius-md)] [&_img]:object-cover"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6, ease: "easeOut", delay: 0.45 }}
+          initial="hidden"
+          animate="visible"
+          variants={heroEntrance}
+          transition={{ ...heroTransition, delay: 0.45 }}
         >
           <ProjectImage id="hero" />
         </motion.div>
@@ -566,7 +578,7 @@ export default function Hero() {
                 {modalStatus === "checking" ? (
                   <div className="flex items-center gap-[var(--space-xs)]">
                     <span className="h-[18px] w-[18px] animate-spin rounded-[var(--radius-round)] border-2 border-[var(--color-border)] border-t-[var(--color-text)]" aria-hidden="true"></span>
-                    <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">Checking ZIP...</p>
+                    <p className="font-[family-name:var(--font-body)] text-[13px] leading-[18px] text-[var(--color-muted)]">{CHECKING_MESSAGE}</p>
                   </div>
                 ) : null}
 
@@ -602,7 +614,7 @@ export default function Hero() {
                   whileTap={{ scale: 0.98 }}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Checking ZIP..." : "Join the Waitlist"}
+                  {isSubmitting ? CHECKING_MESSAGE : "Join the Waitlist"}
                 </motion.button>
                 <motion.button
                   className="inline-flex h-[48px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)] outline-none transition hover:bg-[var(--color-surface)] focus-ring disabled:opacity-60 lg:h-[56px]"
@@ -611,7 +623,7 @@ export default function Hero() {
                   whileTap={{ scale: 0.98 }}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Checking ZIP..." : "Check availability"}
+                  {isSubmitting ? CHECKING_MESSAGE : "Check availability"}
                 </motion.button>
               </div>
             </form>
