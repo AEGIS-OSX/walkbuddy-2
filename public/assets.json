@@ -1,0 +1,32 @@
+{
+  "hero": {
+    "url": "",
+    "alt": "",
+    "width": 1920,
+    "height": 1080
+  },
+  "feature_1": {
+    "url": "",
+    "alt": "",
+    "width": 800,
+    "height": 600
+  },
+  "feature_2": {
+    "url": "",
+    "alt": "",
+    "width": 800,
+    "height": 600
+  },
+  "feature_3": {
+    "url": "",
+    "alt": "",
+    "width": 800,
+    "height": 600
+  },
+  "social_proof": {
+    "url": "",
+    "alt": "",
+    "width": 1200,
+    "height": 800
+  }
+}

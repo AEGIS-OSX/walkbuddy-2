@@ -1,0 +1,10 @@
+{
+  "display": {
+    "family": "Playfair Display",
+    "google": true
+  },
+  "body": {
+    "family": "Inter",
+    "google": true
+  }
+}
