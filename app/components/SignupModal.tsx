@@ -41,7 +41,7 @@ const checkingLabel = "Checking ZIP...";
 const successChip = "Service available";
 const successMessage = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
 const pendingChip = "Join city waitlist";
-const pendingMessage = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
+const pendingMessage = "We’re not live yet. Join early access and we’ll notify you when we expand.";
 const networkError = "We could not complete your signup. Please try again.";
 
 const focusableSelector = [
@@ -50,7 +50,7 @@ const focusableSelector = [
   "input:not([disabled])",
   "select:not([disabled])",
   "textarea:not([disabled])",
-  "[tabindex]:not([tabindex=\"-1\"])",
+  "[tabindex]:not([tabindex=\"-1\")]",
 ].join(", ");
 
 function normalizeZip(value: string): string {
