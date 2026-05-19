@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
+import type { ChangeEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 
 type AvailabilityStatus = "served" | "pending";
 
@@ -11,15 +12,37 @@ type SignupModalProps = {
   prefillZip?: string;
 };
 
-type SignupResponse = {
-  error?: string;
+type MarketingResponse = {
   availability_status?: AvailabilityStatus;
+  error?: string;
 };
 
-const servedZips: Record<string, true> = {
-  "78701": true,
-  "78704": true,
+type SignupPayload = {
+  email: string;
+  zip: string;
+  name?: string;
+  utm: Record<string, string>;
+  source: "landing";
 };
+
+declare global {
+  interface Window {
+    ENV?: {
+      NEXT_PUBLIC_MARKETING_API?: string;
+    };
+  }
+}
+
+const emailPattern = /.+@.+\..+/;
+const zipPattern = /^\d{5}$/;
+const validationError = "Please enter a valid email and a 5-digit ZIP code.";
+const duplicateEntry = "This ZIP and email are already on our list. We just sent a confirmation.";
+const checkingLabel = "Checking ZIP...";
+const successChip = "Service available";
+const successMessage = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
+const pendingChip = "Join city waitlist";
+const pendingMessage = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
+const networkError = "We could not complete your signup. Please try again.";
 
 const focusableSelector = [
   "a[href]",
@@ -30,149 +53,154 @@ const focusableSelector = [
   "[tabindex]:not([tabindex=\"-1\"])",
 ].join(", ");
 
-const validationError = "Please enter a valid email and a 5-digit ZIP code.";
-const duplicateEntryMessage = "This ZIP and email are already on our list. We just sent a confirmation.";
-const networkErrorMessage = "Something went wrong. Please try again in a moment.";
-
-const overlayVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-  exit: { opacity: 0 },
-};
-
-const panelVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.22,
-      ease: "easeOut",
-      staggerChildren: 0.08,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: 16,
-    transition: {
-      duration: 0.18,
-      ease: "easeOut",
-    },
-  },
-};
-
-const childVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.2,
-      ease: "easeOut",
-    },
-  },
-};
+function normalizeZip(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 5);
+}
 
 function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  return emailPattern.test(value.trim());
 }
 
 function isValidZip(value: string): boolean {
-  return /^\d{5}$/.test(value.trim());
+  return zipPattern.test(value.trim());
 }
 
-function getAvailability(zip: string): AvailabilityStatus {
-  return servedZips[zip.trim()] ? "served" : "pending";
+function getLocalAvailability(zip: string): AvailabilityStatus {
+  return zip.trim().startsWith("787") ? "served" : "pending";
 }
 
-function getUtmParams(): Record<string, string> | undefined {
-  const params = new URLSearchParams(window.location.search);
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
+}
+
+function readUtmParams(): Record<string, string> {
+  const searchParams = new URLSearchParams(window.location.search);
   const utm: Record<string, string> = {};
 
-  params.forEach((value: string, key: string) => {
+  searchParams.forEach((value: string, key: string) => {
     if (key.toLowerCase().startsWith("utm_")) {
       utm[key] = value;
     }
   });
 
-  return Object.keys(utm).length > 0 ? utm : undefined;
+  return utm;
 }
 
-function isSignupResponse(value: unknown): value is SignupResponse {
+function getMarketingApiBase(): string | undefined {
+  const windowApi = typeof window !== "undefined" ? window.ENV?.NEXT_PUBLIC_MARKETING_API : undefined;
+  const processApi = process.env.NEXT_PUBLIC_MARKETING_API;
+  const apiBase = windowApi ?? processApi;
+
+  return apiBase && apiBase.trim().length > 0 ? apiBase.replace(/\/$/, "") : undefined;
+}
+
+function isMarketingResponse(value: unknown): value is MarketingResponse {
   if (typeof value !== "object" || value === null) {
     return false;
   }
 
   const record = value as Record<string, unknown>;
-  const validError = record.error === undefined || typeof record.error === "string";
-  const validAvailability = record.availability_status === undefined
+  const errorValid = record.error === undefined || typeof record.error === "string";
+  const availabilityValid = record.availability_status === undefined
     || record.availability_status === "served"
     || record.availability_status === "pending";
 
-  return validError && validAvailability;
+  return errorValid && availabilityValid;
+}
+
+function emitSignupSuccess(zip: string, availability: AvailabilityStatus): void {
+  window.dispatchEvent(
+    new CustomEvent("signup:success", {
+      detail: {
+        zip,
+        availability,
+      },
+    }),
+  );
 }
 
 export default function SignupModal({ open, onClose, prefillZip = "" }: SignupModalProps): React.JSX.Element {
+  const prefersReducedMotion = useReducedMotion();
+  const titleId = useId();
+  const descriptionId = useId();
+  const statusId = useId();
+
   const [email, setEmail] = useState("");
-  const [zip, setZip] = useState(prefillZip);
+  const [zip, setZip] = useState(normalizeZip(prefillZip));
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
-  const [availability, setAvailability] = useState(null as AvailabilityStatus | null);
-  const [validationMessage, setValidationMessage] = useState("");
-  const [duplicateMessage, setDuplicateMessage] = useState("");
-  const [networkMessage, setNetworkMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availability, setAvailability] = useState<AvailabilityStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [duplicate, setDuplicate] = useState(false);
 
-  const panelRef = useRef(null as HTMLDivElement | null);
-  const closeButtonRef = useRef(null as HTMLButtonElement | null);
-  const previousFocusRef = useRef(null as HTMLElement | null);
-  const wasOpenRef = useRef(false);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const hadOpenStateRef = useRef(false);
 
   const trimmedEmail = email.trim();
   const trimmedZip = zip.trim();
   const emailValid = isValidEmail(trimmedEmail);
   const zipValid = isValidZip(trimmedZip);
-  const formValid = emailValid && zipValid;
-  const submitDisabled = !consent || !formValid || isSubmitting;
+  const canSubmit = emailValid && zipValid && consent && !loading;
 
-  useEffect(() => {
-    if (open) {
-      setZip(prefillZip.replace(/\D/g, "").slice(0, 5));
-      setAvailability(null);
-      setValidationMessage("");
-      setDuplicateMessage("");
-      setNetworkMessage("");
-    }
-  }, [open, prefillZip]);
+  const clearFeedback = useCallback((): void => {
+    setError("");
+    setDuplicate(false);
+  }, []);
+
+  const closeModal = useCallback((): void => {
+    onClose();
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) {
-      if (wasOpenRef.current) {
+      if (hadOpenStateRef.current) {
         previousFocusRef.current?.focus();
-        wasOpenRef.current = false;
+        hadOpenStateRef.current = false;
       }
       return;
     }
 
     previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    wasOpenRef.current = true;
+    hadOpenStateRef.current = true;
+    setZip(normalizeZip(prefillZip));
+    setAvailability(null);
+    setLoading(false);
+    clearFeedback();
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const focusTimer = window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+    const focusTimer = window.setTimeout(() => {
+      emailInputRef.current?.focus();
+    }, 0);
 
-    const handleKeyDown = (event: KeyboardEvent): void => {
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [clearFeedback, open, prefillZip]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handleDocumentKeyDown(event: KeyboardEvent): void {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        closeModal();
         return;
       }
 
-      if (event.key !== "Tab" || !panelRef.current) {
+      if (event.key !== "Tab" || !dialogRef.current) {
         return;
       }
 
-      const focusableElements = Array.from(panelRef.current.querySelectorAll(focusableSelector)).filter(
+      const focusableElements = Array.from(dialogRef.current.querySelectorAll(focusableSelector)).filter(
         (element): element is HTMLElement => element instanceof HTMLElement
           && !element.hasAttribute("disabled")
           && element.getAttribute("aria-hidden") !== "true",
@@ -180,7 +208,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
 
       if (focusableElements.length === 0) {
         event.preventDefault();
-        panelRef.current.focus();
+        dialogRef.current.focus();
         return;
       }
 
@@ -188,7 +216,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
       const lastElement = focusableElements[focusableElements.length - 1];
       const activeElement = document.activeElement;
 
-      if (!panelRef.current.contains(activeElement)) {
+      if (!dialogRef.current.contains(activeElement)) {
         event.preventDefault();
         firstElement.focus();
         return;
@@ -203,111 +231,141 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
         event.preventDefault();
         firstElement.focus();
       }
-    };
+    }
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleDocumentKeyDown);
 
     return () => {
-      window.clearTimeout(focusTimer);
-      document.body.style.overflow = originalOverflow;
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleDocumentKeyDown);
     };
-  }, [open, onClose]);
+  }, [closeModal, open]);
 
-  function clearMessages(): void {
-    setValidationMessage("");
-    setDuplicateMessage("");
-    setNetworkMessage("");
+  function handleOverlayClick(): void {
+    if (!loading) {
+      closeModal();
+    }
   }
 
-  function handleZipChange(event: React.ChangeEvent<HTMLInputElement>): void {
-    setZip(event.target.value.replace(/\D/g, "").slice(0, 5));
+  function stopDialogClick(event: ReactMouseEvent<HTMLDivElement>): void {
+    event.stopPropagation();
+  }
+
+  function handleDialogKeyDown(event: ReactKeyboardEvent<HTMLDivElement>): void {
+    event.stopPropagation();
+  }
+
+  function handleEmailChange(event: ChangeEvent<HTMLInputElement>): void {
+    setEmail(event.target.value);
     setAvailability(null);
-    clearMessages();
+    clearFeedback();
   }
 
-  function handleAvailabilityCheck(): void {
-    if (!formValid) {
+  function handleZipChange(event: ChangeEvent<HTMLInputElement>): void {
+    setZip(normalizeZip(event.target.value));
+    setAvailability(null);
+    clearFeedback();
+  }
+
+  function handleNameChange(event: ChangeEvent<HTMLInputElement>): void {
+    setName(event.target.value);
+    clearFeedback();
+  }
+
+  function handleConsentChange(event: ChangeEvent<HTMLInputElement>): void {
+    setConsent(event.target.checked);
+    clearFeedback();
+  }
+
+  async function handleAvailabilityCheck(): Promise<void> {
+    if (!zipValid) {
       setAvailability(null);
-      setDuplicateMessage("");
-      setNetworkMessage("");
-      setValidationMessage("Please enter a valid email and a 5-digit ZIP code.");
+      setDuplicate(false);
+      setError(validationError);
       return;
     }
 
-    setAvailability(getAvailability(trimmedZip));
-    clearMessages();
+    setLoading(true);
+    clearFeedback();
+
+    try {
+      await delay(300);
+      setAvailability(getLocalAvailability(trimmedZip));
+    } finally {
+      setLoading(false);
+    }
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
-    if (!formValid) {
+    if (!emailValid || !zipValid || !consent) {
       setAvailability(null);
-      setDuplicateMessage("");
-      setNetworkMessage("");
-      setValidationMessage("Please enter a valid email and a 5-digit ZIP code.");
+      setDuplicate(false);
+      setError(validationError);
       return;
     }
 
-    if (!consent || isSubmitting) {
-      return;
-    }
-
-    const nextAvailability = getAvailability(trimmedZip);
-    const utm = getUtmParams();
-
-    setAvailability(nextAvailability);
-    clearMessages();
-    setIsSubmitting(true);
-
-    const payload = {
+    const localAvailability = getLocalAvailability(trimmedZip);
+    const apiBase = getMarketingApiBase();
+    const payload: SignupPayload = {
       email: trimmedEmail,
       zip: trimmedZip,
-      ...(name.trim() ? { name: name.trim() } : {}),
-      consent: true,
-      ...(utm ? { utm } : {}),
+      ...(name.trim().length > 0 ? { name: name.trim() } : {}),
+      utm: readUtmParams(),
       source: "landing",
     };
 
+    setLoading(true);
+    clearFeedback();
+
     try {
-      const response = await fetch("/api/marketing-signups", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      let finalAvailability = localAvailability;
 
-      let responseBody: SignupResponse | null = null;
+      if (apiBase) {
+        const response = await fetch(`${apiBase}/marketing-signups`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
 
-      try {
-        const parsedBody: unknown = await response.json();
-        responseBody = isSignupResponse(parsedBody) ? parsedBody : null;
-      } catch {
-        responseBody = null;
+        let responseBody: MarketingResponse | null = null;
+
+        try {
+          const parsedBody: unknown = await response.json();
+          responseBody = isMarketingResponse(parsedBody) ? parsedBody : null;
+        } catch {
+          responseBody = null;
+        }
+
+        if (response.status === 409) {
+          setAvailability(null);
+          setDuplicate(true);
+          setError("");
+          return;
+        }
+
+        if (!response.ok) {
+          setAvailability(null);
+          setDuplicate(false);
+          setError(responseBody?.error === duplicateEntry ? duplicateEntry : networkError);
+          return;
+        }
+
+        finalAvailability = responseBody?.availability_status ?? localAvailability;
+      } else {
+        await delay(600);
       }
 
-      if (response.status === 409 || responseBody?.error === duplicateEntryMessage) {
-        setAvailability(null);
-        setValidationMessage("");
-        setNetworkMessage("");
-        setDuplicateMessage("This ZIP and email are already on our list. We just sent a confirmation.");
-        return;
-      }
-
-      if (!response.ok) {
-        setNetworkMessage("Something went wrong. Please try again in a moment.");
-        return;
-      }
-
-      if (responseBody?.availability_status) {
-        setAvailability(responseBody.availability_status);
-      }
+      setAvailability(finalAvailability);
+      emitSignupSuccess(trimmedZip, finalAvailability);
     } catch {
-      setNetworkMessage("Something went wrong. Please try again in a moment.");
+      setAvailability(null);
+      setDuplicate(false);
+      setError(networkError);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   }
 
@@ -315,187 +373,205 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          aria-live="polite"
+          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-[rgba(0,0,0,0.4)] px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.01 : 0.2, ease: "easeOut" }}
+          onClick={handleOverlayClick}
         >
           <motion.div
-            className="absolute inset-0 bg-[var(--color-bg)] opacity-90"
-            variants={overlayVariants}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            aria-hidden="true"
-            onClick={onClose}
-          ></motion.div>
-
-          <motion.div
-            ref={panelRef}
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="signup-modal-title"
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
             tabIndex={-1}
-            className="relative w-full max-w-[520px] overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-lg)] shadow-[var(--elev-2)] outline-none sm:p-[var(--space-xl)]"
-            variants={panelVariants}
+            className="card relative w-full max-w-[540px] overflow-hidden rounded-[var(--radius-md)] bg-[var(--color-bg)] p-[var(--space-xl)] outline-none"
+            initial={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 }}
+            transition={{ duration: prefersReducedMotion ? 0.01 : 0.35, ease: "easeOut" }}
+            onClick={stopDialogClick}
+            onKeyDown={handleDialogKeyDown}
           >
-            <motion.div className="flex items-start justify-between gap-[var(--space-md)]" variants={childVariants}>
-              <div className="space-y-[var(--space-xs)]">
-                <p className="font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-muted)]">
+            <div className="flex items-start justify-between gap-[var(--space-md)]">
+              <div className="min-w-0 space-y-[var(--space-xs)]">
+                <p
+                  id={descriptionId}
+                  className="eyebrow text-[var(--color-muted)]"
+                >
                   WalkBuddy early access
                 </p>
                 <h2
-                  id="signup-modal-title"
+                  id={titleId}
                   className="font-[family-name:var(--font-display)] text-[length:var(--type-md)] font-[var(--font-weight-semibold)] leading-[30px] tracking-[-0.02em] text-[var(--color-text)] sm:text-[length:var(--type-lg)] sm:leading-[36px]"
                 >
                   Check availability
                 </h2>
               </div>
               <button
-                ref={closeButtonRef}
                 type="button"
                 aria-label="Close signup modal"
-                className="flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[length:var(--type-sm)] font-[var(--font-weight-medium)] leading-none text-[var(--color-muted)] transition duration-200 ease-out hover:text-[var(--color-text)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                onClick={onClose}
+                disabled={loading}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] text-[length:var(--type-sm)] font-[var(--font-weight-medium)] leading-none text-[var(--color-text)] transition duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={closeModal}
               >
                 ×
               </button>
-            </motion.div>
+            </div>
 
-            <motion.form className="mt-[var(--space-lg)] space-y-[var(--space-md)]" onSubmit={handleSubmit} noValidate variants={childVariants}>
-              <div className="grid gap-[var(--space-md)] sm:grid-cols-2">
-                <label className="space-y-[var(--space-xs)] sm:col-span-2">
-                  <span className="block text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)]">
-                    Email
-                  </span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    aria-invalid={validationMessage ? !emailValid : undefined}
-                    className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-                      setAvailability(null);
-                      clearMessages();
-                    }}
-                  ></input>
-                </label>
+            <form
+              className="mt-[var(--space-lg)] space-y-[var(--space-md)]"
+              noValidate
+              onSubmit={handleSubmit}
+            >
+              <label className="block">
+                <span className="sr-only">Email</span>
+                <input
+                  ref={emailInputRef}
+                  type="email"
+                  required
+                  aria-label="Email"
+                  aria-invalid={error === validationError && !emailValid}
+                  aria-describedby={statusId}
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  disabled={loading}
+                  className="field w-full"
+                  onChange={handleEmailChange}
+                />
+              </label>
 
-                <label className="space-y-[var(--space-xs)]">
-                  <span className="block text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)]">
-                    ZIP
-                  </span>
+              <div className="grid gap-[var(--space-md)] sm:grid-cols-[1fr_1fr]">
+                <label className="block">
+                  <span className="sr-only">ZIP code</span>
                   <input
                     type="text"
                     required
+                    aria-label="ZIP code"
+                    aria-invalid={error === validationError && !zipValid}
+                    aria-describedby={statusId}
                     inputMode="numeric"
                     maxLength={5}
-                    value={zip}
-                    placeholder="ZIP code"
                     autoComplete="postal-code"
-                    aria-invalid={validationMessage ? !zipValid : undefined}
-                    className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
+                    placeholder="ZIP code"
+                    value={zip}
+                    disabled={loading}
+                    className="field w-full"
                     onChange={handleZipChange}
-                  ></input>
+                  />
                 </label>
 
-                <label className="space-y-[var(--space-xs)]">
-                  <span className="block text-[length:var(--type-xs)] font-[var(--font-weight-medium)] leading-[18px] text-[var(--color-text)]">
-                    First name
-                  </span>
+                <label className="block">
+                  <span className="sr-only">First name</span>
                   <input
                     type="text"
-                    value={name}
-                    placeholder="First name (optional)"
+                    aria-label="First name"
                     autoComplete="given-name"
-                    className="min-h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] outline-none transition duration-200 ease-out placeholder:text-[var(--color-muted)] focus-visible:border-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                    onChange={(event) => {
-                      setName(event.target.value);
-                      clearMessages();
-                    }}
-                  ></input>
+                    placeholder="First name"
+                    value={name}
+                    disabled={loading}
+                    className="field w-full"
+                    onChange={handleNameChange}
+                  />
                 </label>
               </div>
 
-              <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+              <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
                 <input
                   type="checkbox"
                   required
                   checked={consent}
-                  className="mt-[var(--space-xxs)] min-h-4 min-w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
-                  onChange={(event) => {
-                    setConsent(event.target.checked);
-                    clearMessages();
-                  }}
-                ></input>
-                <span>I agree to receive updates and marketing emails.</span>
+                  disabled={loading}
+                  aria-describedby={statusId}
+                  className="mt-[var(--space-xxs)] min-h-4 min-w-4 rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-bg)] accent-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+                  onChange={handleConsentChange}
+                />
+                <span className="block text-[var(--color-text)]">
+                  I agree to receive WalkBuddy availability and early access emails.
+                </span>
               </label>
 
               <div className="flex flex-col gap-[var(--space-sm)] sm:flex-row sm:items-center">
                 <motion.button
                   type="submit"
-                  disabled={submitDisabled}
-                  className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-cta-bg)] px-[var(--space-lg)] text-[length:var(--type-body)] font-[var(--font-weight-semibold)] leading-[22px] text-[var(--color-cta-text)] transition duration-200 ease-out focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-14 sm:min-w-[140px]"
-                  whileHover={submitDisabled ? undefined : { y: -1 }}
-                  whileTap={submitDisabled ? undefined : { scale: 0.98 }}
+                  disabled={!canSubmit}
+                  className="btn-primary inline-flex w-full items-center justify-center sm:w-auto"
+                  whileHover={canSubmit ? { scale: 1.02 } : undefined}
+                  whileTap={canSubmit ? { scale: 0.98 } : undefined}
                 >
-                  {isSubmitting ? "Checking ZIP..." : "Join the Waitlist"}
+                  {loading ? checkingLabel : "Join the Waitlist"}
                 </motion.button>
-                <button
+
+                <motion.button
                   type="button"
-                  disabled={isSubmitting}
-                  className="inline-flex min-h-12 items-center justify-center rounded-[var(--radius-md)] bg-[var(--color-bg)] px-[var(--space-md)] text-[length:var(--type-body)] font-[var(--font-weight-medium)] leading-[22px] text-[var(--color-text)] transition duration-200 ease-out hover:bg-[var(--color-surface)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-14"
+                  disabled={loading}
+                  className="btn-secondary inline-flex w-full items-center justify-center sm:w-auto"
+                  whileHover={loading ? undefined : { scale: 1.02 }}
+                  whileTap={loading ? undefined : { scale: 0.98 }}
                   onClick={handleAvailabilityCheck}
                 >
-                  Check availability
-                </button>
+                  {loading ? checkingLabel : "Check availability"}
+                </motion.button>
               </div>
 
-              <motion.div className="min-h-20 space-y-[var(--space-sm)]" aria-live="polite" aria-atomic="true" variants={childVariants}>
-                {validationMessage ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
-                    {validationMessage}
+              <div
+                id={statusId}
+                className="min-h-20 space-y-[var(--space-sm)]"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {loading ? (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)]">
+                    <div className="h-2 w-2/3 rounded-[var(--radius-round)] bg-[var(--color-accent)] opacity-70"></div>
+                    <p className="mt-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
+                      Checking ZIP...
+                    </p>
+                  </div>
+                ) : null}
+
+                {error ? (
+                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+                    {error}
                   </p>
                 ) : null}
 
-                {duplicateMessage ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
-                    {duplicateMessage}
-                  </p>
-                ) : null}
-
-                {networkMessage ? (
-                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
-                    {networkMessage}
+                {duplicate ? (
+                  <p className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
+                    This ZIP and email are already on our list. We just sent a confirmation.
                   </p>
                 ) : null}
 
                 {availability ? (
-                  <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)]">
+                  <motion.div
+                    className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-md)]"
+                    initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: prefersReducedMotion ? 0.01 : 0.22, ease: "easeOut" }}
+                  >
                     <div className="flex flex-wrap items-center gap-[var(--space-sm)]">
-                      <span className="inline-flex rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] py-[var(--space-xxs)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-accent-text)]">
-                        {availability === "served" ? "Service available" : "Join city waitlist"}
+                      <span className={availability === "served" ? "chip-success" : "chip-pending"}>
+                        {availability === "served" ? successChip : pendingChip}
                       </span>
+
                       {availability === "served" ? (
                         <a
-                          href="/thank-you?availability_status=served&pricing_range=%2418%E2%80%93%2425"
-                          className="text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4 transition duration-200 ease-out hover:decoration-[var(--color-accent)] focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
+                          href="/thank-you?availability_status=served"
+                          className="rounded-[var(--radius-sm)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-text)] underline decoration-[var(--color-border)] underline-offset-4 transition duration-200 ease-out hover:decoration-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-accent)]"
                         >
                           View booking details
                         </a>
                       ) : null}
                     </div>
                     <p className="mt-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
-                      {availability === "served"
-                        ? "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps."
-                        : "We’re not live yet. Join early access and we’ll notify you when we expand."}
+                      {availability === "served" ? successMessage : pendingMessage}
                     </p>
-                  </div>
+                  </motion.div>
                 ) : null}
-              </motion.div>
-            </motion.form>
+              </div>
+            </form>
           </motion.div>
         </motion.div>
       ) : null}
