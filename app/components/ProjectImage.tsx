@@ -1,11 +1,23 @@
 "use client";
+
+import type { CSSProperties } from "react";
 import assets from "../../public/assets.json";
 
 type AssetKey = keyof typeof assets;
 
-export function ProjectImage({ id, className }: { id: AssetKey; className?: string }) {
+type ProjectImageProps = {
+  id: AssetKey;
+  className?: string;
+  fetchpriority?: "high" | "low" | "auto";
+  fetchPriority?: "high" | "low" | "auto";
+  style?: CSSProperties;
+};
+
+export function ProjectImage({ id, className, fetchpriority, fetchPriority, style }: ProjectImageProps) {
   const asset = assets[id];
+
   if (!asset?.url) return null;
+
   return (
     <img
       src={asset.url}
@@ -14,6 +26,8 @@ export function ProjectImage({ id, className }: { id: AssetKey; className?: stri
       height={asset.height}
       className={className}
       loading={id === "hero" ? "eager" : "lazy"}
+      fetchPriority={fetchPriority ?? fetchpriority}
+      style={style}
     />
   );
 }
