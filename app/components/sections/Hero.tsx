@@ -268,7 +268,7 @@ export default function Hero(): JSX.Element {
         </motion.div>
       </div>
 
-      {isModalOpen ? <SignupModal initialZip={zip.trim()} /> : null}
+      {isModalOpen ? <SignupModal initialZip={zip.trim()}></SignupModal> : null}
     </motion.section>
   );
 }
