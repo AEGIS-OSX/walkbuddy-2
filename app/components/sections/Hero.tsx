@@ -18,32 +18,37 @@ type ZipStatus = {
   message: string;
 };
 
-const heroEyebrow = "Background-checked walkers — GPS recaps — Photo proof";
-const heroHeadline = "Trusted local dog walks, on your schedule.";
-const heroSubhead = "Book a vetted local walker, see photos and live GPS.";
-const heroPricing = "Launching in Austin, TX: estimated price per 30-min walk: $18–$25.";
-const helperMessage = "Enter your ZIP to see if we serve your area.";
-const validationMessage = "Please enter a valid 5-digit ZIP code.";
-const checkingMessage = "Checking ZIP...";
-const successChip = "Service available";
-const successMessage = "Great. WalkBuddy serves your ZIP. Select a time to book a walk.";
-const pendingChip = "Join city waitlist";
-const pendingMessage = "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
 const zipPattern = /^\d{5}$/;
 
 function getOptimisticStatus(zip: string): ZipStatus {
   return zip.startsWith("787")
-    ? { status: "success", chip: successChip, message: successMessage }
-    : { status: "pending", chip: pendingChip, message: pendingMessage };
+    ? {
+        status: "success",
+        chip: "Service available",
+        message: "Great. WalkBuddy serves your ZIP. Select a time to book a walk."
+      }
+    : {
+        status: "pending",
+        chip: "Join city waitlist",
+        message: "We’re not live in this ZIP yet. Join early access and we will notify you when we expand."
+      };
 }
 
 function getStatusFromResponse(response: MarketingSignupResponse, zip: string): ZipStatus {
   if (response.availability_status === "served") {
-    return { status: "success", chip: successChip, message: successMessage };
+    return {
+      status: "success",
+      chip: "Service available",
+      message: "Great. WalkBuddy serves your ZIP. Select a time to book a walk."
+    };
   }
 
   if (response.availability_status === "pending") {
-    return { status: "pending", chip: pendingChip, message: pendingMessage };
+    return {
+      status: "pending",
+      chip: "Join city waitlist",
+      message: "We’re not live in this ZIP yet. Join early access and we will notify you when we expand."
+    };
   }
 
   return getOptimisticStatus(zip);
@@ -54,7 +59,7 @@ export default function Hero(): JSX.Element {
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [zipStatus, setZipStatus] = useState<ZipStatus>({
     status: "idle",
-    message: helperMessage
+    message: "Enter your ZIP to see if we serve your area."
   });
 
   const hasChip = zipStatus.status === "success" || zipStatus.status === "pending";
@@ -65,11 +70,11 @@ export default function Hero(): JSX.Element {
     const normalizedZip = zip.trim();
 
     if (!zipPattern.test(normalizedZip)) {
-      setZipStatus({ status: "error", message: validationMessage });
+      setZipStatus({ status: "error", message: "Please enter a valid 5-digit ZIP code." });
       return;
     }
 
-    setZipStatus({ status: "checking", message: checkingMessage });
+    setZipStatus({ status: "checking", message: "Checking ZIP..." });
 
     const optimisticStatus = getOptimisticStatus(normalizedZip);
 
@@ -111,7 +116,7 @@ export default function Hero(): JSX.Element {
             viewport={{ once: true }}
             transition={{ delay: 0.05, duration: 0.5, ease: "easeOut" }}
           >
-            {heroEyebrow}
+            Background-checked walkers — GPS recaps — Photo proof
           </motion.p>
 
           <motion.h1
@@ -121,7 +126,7 @@ export default function Hero(): JSX.Element {
             viewport={{ once: true }}
             transition={{ delay: 0.15, duration: 0.5, ease: "easeOut" }}
           >
-            {heroHeadline}
+            Trusted local dog walks, on your schedule.
           </motion.h1>
 
           <motion.p
@@ -131,7 +136,7 @@ export default function Hero(): JSX.Element {
             viewport={{ once: true }}
             transition={{ delay: 0.25, duration: 0.5, ease: "easeOut" }}
           >
-            {heroSubhead}
+            Book a vetted local walker, see photos and live GPS.
           </motion.p>
 
           <motion.p
@@ -141,7 +146,7 @@ export default function Hero(): JSX.Element {
             viewport={{ once: true }}
             transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
           >
-            {heroPricing}
+            Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
           </motion.p>
 
           <motion.div
@@ -204,7 +209,7 @@ export default function Hero(): JSX.Element {
                   whileTap={{ scale: zipStatus.status === "checking" ? 1 : 0.98 }}
                   style={{ backgroundColor: "var(--color-cta-bg)", color: "var(--color-cta-text)" }}
                 >
-                  {zipStatus.status === "checking" ? checkingMessage : "Check availability"}
+                  {zipStatus.status === "checking" ? "Checking ZIP..." : "Check availability"}
                 </motion.button>
               </div>
 
