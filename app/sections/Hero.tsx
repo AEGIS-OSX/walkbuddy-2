@@ -326,7 +326,7 @@ export default function Hero(): JSX.Element {
     }
 
     const focusableElements = event.currentTarget.querySelectorAll<HTMLElement>(
-      "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])",
+      "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"])",
     );
 
     if (focusableElements.length === 0) {
