@@ -257,11 +257,11 @@ canvas {
     border-radius: var(--radius-md);
     box-shadow: var(--elev-1);
   }
-}
 
-@media (min-width: 1024px) {
-  .btn-primary {
-    min-height: 56px;
+  @media (min-width: 1024px) {
+    .btn-primary {
+      min-height: 56px;
+    }
   }
 }
 
