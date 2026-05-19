@@ -33,8 +33,6 @@ const focusableSelector = [
 const validationError = "Please enter a valid email and a 5-digit ZIP code.";
 const duplicateEntryMessage = "This ZIP and email are already on our list. We just sent a confirmation.";
 const networkErrorMessage = "Something went wrong. Please try again in a moment.";
-const servedMessage = "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps.";
-const pendingMessage = `We’re not live yet. Join early access and we’ll notify you when we expand.`;
 
 const overlayVariants = {
   hidden: { opacity: 0 },
@@ -136,8 +134,6 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
   const zipValid = isValidZip(trimmedZip);
   const formValid = emailValid && zipValid;
   const submitDisabled = !consent || !formValid || isSubmitting;
-  const resultMessage = availability === "served" ? servedMessage : pendingMessage;
-  const resultChip = availability === "served" ? "Service available" : "Join city waitlist";
 
   useEffect(() => {
     if (open) {
@@ -224,7 +220,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     setNetworkMessage("");
   }
 
-  function handleZipChange(event: { target: HTMLInputElement }): void {
+  function handleZipChange(event: React.ChangeEvent<HTMLInputElement>): void {
     setZip(event.target.value.replace(/\D/g, "").slice(0, 5));
     setAvailability(null);
     clearMessages();
@@ -235,7 +231,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
       setAvailability(null);
       setDuplicateMessage("");
       setNetworkMessage("");
-      setValidationMessage(validationError);
+      setValidationMessage("Please enter a valid email and a 5-digit ZIP code.");
       return;
     }
 
@@ -243,14 +239,14 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     clearMessages();
   }
 
-  async function handleSubmit(event: { preventDefault: () => void }) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     if (!formValid) {
       setAvailability(null);
       setDuplicateMessage("");
       setNetworkMessage("");
-      setValidationMessage(validationError);
+      setValidationMessage("Please enter a valid email and a 5-digit ZIP code.");
       return;
     }
 
@@ -259,6 +255,8 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     }
 
     const nextAvailability = getAvailability(trimmedZip);
+    const utm = getUtmParams();
+
     setAvailability(nextAvailability);
     clearMessages();
     setIsSubmitting(true);
@@ -268,7 +266,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
       zip: trimmedZip,
       ...(name.trim() ? { name: name.trim() } : {}),
       consent: true,
-      ...(getUtmParams() ? { utm: getUtmParams() } : {}),
+      ...(utm ? { utm } : {}),
       source: "landing",
     };
 
@@ -294,12 +292,12 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
         setAvailability(null);
         setValidationMessage("");
         setNetworkMessage("");
-        setDuplicateMessage(duplicateEntryMessage);
+        setDuplicateMessage("This ZIP and email are already on our list. We just sent a confirmation.");
         return;
       }
 
       if (!response.ok) {
-        setNetworkMessage(networkErrorMessage);
+        setNetworkMessage("Something went wrong. Please try again in a moment.");
         return;
       }
 
@@ -307,7 +305,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
         setAvailability(responseBody.availability_status);
       }
     } catch {
-      setNetworkMessage(networkErrorMessage);
+      setNetworkMessage("Something went wrong. Please try again in a moment.");
     } finally {
       setIsSubmitting(false);
     }
@@ -317,20 +315,19 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
+          className="fixed inset-0 z-50 flex min-h-dvh items-center justify-center bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-lg)] font-[family-name:var(--font-body)] text-[var(--color-text)]"
           initial="hidden"
           animate="visible"
           exit="exit"
           aria-live="polite"
         >
-          <motion.button
-            type="button"
-            aria-label="Close signup modal"
-            className="absolute inset-0 cursor-default bg-[var(--color-text)] opacity-40 focus-visible:shadow-[0_0_0_4px_rgba(168,230,207,0.18)] focus-visible:outline-none"
+          <motion.div
+            className="absolute inset-0 bg-[var(--color-bg)] opacity-90"
             variants={overlayVariants}
             transition={{ duration: 0.2, ease: "easeOut" }}
+            aria-hidden="true"
             onClick={onClose}
-          ></motion.button>
+          ></motion.div>
 
           <motion.div
             ref={panelRef}
@@ -479,7 +476,7 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                   <div className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-md)]">
                     <div className="flex flex-wrap items-center gap-[var(--space-sm)]">
                       <span className="inline-flex rounded-[var(--radius-round)] bg-[var(--color-accent)] px-[var(--space-sm)] py-[var(--space-xxs)] text-[length:var(--type-xs)] font-[var(--font-weight-semibold)] leading-[18px] text-[var(--color-accent-text)]">
-                        {resultChip}
+                        {availability === "served" ? "Service available" : "Join city waitlist"}
                       </span>
                       {availability === "served" ? (
                         <a
@@ -491,7 +488,9 @@ export default function SignupModal({ open, onClose, prefillZip = "" }: SignupMo
                       ) : null}
                     </div>
                     <p className="mt-[var(--space-sm)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]">
-                      {resultMessage}
+                      {availability === "served"
+                        ? "Great. WalkBuddy serves your ZIP. You will receive a confirmation email with next steps."
+                        : "We’re not live yet. Join early access and we’ll notify you when we expand."}
                     </p>
                   </div>
                 ) : null}
