@@ -171,20 +171,6 @@ export default function Hero() {
     }, 500);
   }
 
-  function handleModalSecondaryCheck(): void {
-    if (!ZIP_PATTERN.test(modalZip)) {
-      setModalStatus("error");
-      setModalError("Please enter a valid email and a 5-digit ZIP code.");
-      return;
-    }
-
-    setModalError("");
-    setModalStatus("checking");
-    setTimeout(() => {
-      setModalStatus(getOptimisticAvailability(modalZip));
-    }, 400);
-  }
-
   async function handleModalSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
@@ -289,7 +275,7 @@ export default function Hero() {
     }
 
     if (inlineStatus === "pending") {
-      return "We’re not live in this ZIP yet. Join early access and we’ll notify you when we expand.";
+      return "We’re not live in this ZIP yet. Join early access and we will notify you when we expand.";
     }
 
     return "Enter your ZIP to see if we serve your area.";
@@ -607,13 +593,12 @@ export default function Hero() {
                 </motion.button>
                 <motion.button
                   className="inline-flex h-[48px] items-center justify-center rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-lg)] font-[family-name:var(--font-body)] text-[14px] font-medium leading-[20px] text-[var(--color-text)] outline-none transition hover:bg-[var(--color-surface)] focus-ring disabled:opacity-60 lg:h-[56px]"
-                  type="button"
-                  onClick={handleModalSecondaryCheck}
+                  type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  disabled={isSubmitting || modalStatus === "checking"}
+                  disabled={isSubmitting}
                 >
-                  Check availability
+                  {isSubmitting ? "Checking ZIP..." : "Check availability"}
                 </motion.button>
               </div>
             </form>
