@@ -224,7 +224,7 @@ export default function HeroSection(): JSX.Element {
                   aria-describedby="hero-zip-status"
                   disabled={isChecking}
                   className="focus-ring h-11 w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                />
+                ></input>
               </div>
 
               <motion.button
@@ -301,7 +301,7 @@ export default function HeroSection(): JSX.Element {
           transition={{ delay: 0.18, duration: 0.5, ease: "easeOut" }}
           className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] p-[var(--space-xs)] shadow-[var(--elev-2)]"
         >
-          <ProjectImage {...heroImageProps} />
+          <ProjectImage {...heroImageProps}></ProjectImage>
         </motion.div>
       </div>
     </motion.section>
