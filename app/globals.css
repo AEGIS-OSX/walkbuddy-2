@@ -119,20 +119,18 @@ canvas {
 }
 
 .focus-ring {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 .focus-ring:focus {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-  box-shadow: none;
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 .focus-ring:focus-visible {
-  outline: 4px solid rgba(168,230,207,0.18);
-  outline-offset: 2px;
-  box-shadow: none;
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 [data-reduced-motion="true"] * {
@@ -374,7 +372,7 @@ body {
 .wb-input:focus {
   outline: none;
   border-color: var(--color-accent);
-  box-shadow: 0 6px 18px rgba(168,230,207,0.12);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 .btn-reset {
@@ -420,7 +418,7 @@ h3 {
 
 .focus-ring {
   outline: none;
-  box-shadow: 0 0 0 4px rgba(168,230,207,0.18);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-accent) 18%, transparent);
 }
 
 button:focus-visible,
