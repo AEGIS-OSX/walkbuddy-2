@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import type { FormEvent, KeyboardEvent } from "react";
+import type { FormEvent, KeyboardEvent, MouseEvent as ReactMouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 
@@ -20,6 +20,26 @@ type AvailabilityStatus = "served" | "pending";
 type ModalState = "idle" | "loading" | "served" | "pending" | "duplicate" | "error";
 
 type InvalidField = "email" | "zip" | "consent";
+
+type StringMap = {
+  [key: string]: string;
+};
+
+type UnknownMap = {
+  [key: string]: unknown;
+};
+
+type SignupFormEvent = FormEvent & {
+  currentTarget: HTMLFormElement;
+};
+
+type SignupDialogKeyboardEvent = KeyboardEvent & {
+  currentTarget: HTMLDialogElement;
+};
+
+type OverlayMouseEvent = ReactMouseEvent & {
+  currentTarget: HTMLDivElement;
+};
 
 type MarketingResponse = {
   availability_status?: AvailabilityStatus;
@@ -47,7 +67,7 @@ const FOLLOW_UP_CTA = "View booking details";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const zipPattern = /^\d{5}$/;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: unknown): value is UnknownMap {
   return typeof value === "object" && value !== null;
 }
 
@@ -72,9 +92,9 @@ function parseMarketingResponse(value: unknown): MarketingResponse {
   };
 }
 
-function collectUtmParams(): Record<string, string> {
+function collectUtmParams(): StringMap {
   const params = new URLSearchParams(window.location.search);
-  const utm: Record<string, string> = {};
+  const utm: StringMap = {};
 
   params.forEach((value, key) => {
     if (key.startsWith("utm_")) {
@@ -87,7 +107,7 @@ function collectUtmParams(): Record<string, string> {
 
 export default function SignupModal(props: SignupModalProps): JSX.Element | null {
   const { open, onClose, prefill } = props;
-  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+  const [portalElement, setPortalElement] = useState(null as HTMLElement | null);
   const [email, setEmail] = useState(prefill?.email ?? "");
   const [zip, setZip] = useState(prefill?.zip ?? "");
   const [name, setName] = useState(prefill?.name ?? "");
@@ -95,16 +115,16 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
   const [modalState, setModalState] = useState<ModalState>("idle");
   const [validationMessage, setValidationMessage] = useState("");
   const [submitErrorTarget, setSubmitErrorTarget] = useState<InvalidField | null>(null);
-  const [pricingRange, setPricingRange] = useState<string | null>(null);
-  const [etaText, setEtaText] = useState<string | null>(null);
+  const [pricingRange, setPricingRange] = useState(null as string | null);
+  const [etaText, setEtaText] = useState(null as string | null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const initialFocusRef = useRef<HTMLInputElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
-  const zipRef = useRef<HTMLInputElement>(null);
-  const consentRef = useRef<HTMLInputElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dialogRef = useRef(null as HTMLDialogElement | null);
+  const initialFocusRef = useRef(null as HTMLInputElement | null);
+  const emailRef = useRef(null as HTMLInputElement | null);
+  const zipRef = useRef(null as HTMLInputElement | null);
+  const consentRef = useRef(null as HTMLInputElement | null);
+  const closeTimerRef = useRef(null as number | null);
 
   useEffect(() => {
     setPortalElement(document.getElementById("portal-root") ?? document.body);
@@ -289,12 +309,12 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
+  const handleSubmit = (event: SignupFormEvent): void => {
     event.preventDefault();
     void submitSignup();
   };
 
-  const handleDialogKeyDown = (event: KeyboardEvent<HTMLDialogElement>): void => {
+  const handleDialogKeyDown = (event: SignupDialogKeyboardEvent): void => {
     if (event.key === "Escape") {
       event.preventDefault();
       closeModal();
@@ -306,7 +326,8 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
     }
 
     const focusableSelector = "a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex=\"-1\"] )";
-    const focusableElements = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(focusableSelector) ?? []).filter(
+    const queryResult = dialogRef.current?.querySelectorAll(focusableSelector) ?? [];
+    const focusableElements = (Array.from(queryResult) as HTMLElement[]).filter(
       (element) => !element.hasAttribute("disabled") && element.getAttribute("aria-hidden") !== "true",
     );
 
@@ -328,7 +349,7 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
     }
   };
 
-  const handleOverlayMouseDown = (event: React.MouseEvent<HTMLDivElement>): void => {
+  const handleOverlayMouseDown = (event: OverlayMouseEvent): void => {
     if (event.target === event.currentTarget) {
       closeModal();
     }
@@ -425,7 +446,7 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
                 aria-describedby="signup-status"
                 disabled={isLoading}
                 className="h-11 w-full rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] transition-[border-color,box-shadow] duration-200 ease-out focus-visible:border-[color:var(--color-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
-              />
+              ></input>
             </div>
 
             <div className="space-y-[var(--space-xs)]">
@@ -450,7 +471,7 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
                 aria-describedby="signup-status"
                 disabled={isLoading}
                 className="h-11 w-full rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] transition-[border-color,box-shadow] duration-200 ease-out focus-visible:border-[color:var(--color-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
-              />
+              ></input>
             </div>
 
             <div className="space-y-[var(--space-xs)]">
@@ -470,7 +491,7 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
                 onChange={(event) => setName(event.currentTarget.value)}
                 disabled={isLoading}
                 className="h-11 w-full rounded-[var(--radius-md)] border border-[color:var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] font-[family-name:var(--font-body)] text-[length:var(--type-body)] leading-[22px] text-[var(--color-text)] placeholder:text-[var(--color-muted)] transition-[border-color,box-shadow] duration-200 ease-out focus-visible:border-[color:var(--color-accent)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
-              />
+              ></input>
             </div>
 
             <label className="flex items-start gap-[var(--space-sm)] rounded-[var(--radius-sm)] border border-[color:var(--color-border)] bg-[var(--color-surface)] p-[var(--space-sm)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] leading-[18px] text-[var(--color-text)]">
@@ -482,7 +503,7 @@ export default function SignupModal(props: SignupModalProps): JSX.Element | null
                 aria-invalid={submitErrorTarget === "consent"}
                 disabled={isLoading}
                 className="mt-[var(--space-xxs)] h-5 w-5 rounded-[var(--radius-sm)] border border-[color:var(--color-border)] accent-[var(--color-primary)] focus-visible:outline focus-visible:outline-4 focus-visible:outline-[color-mix(in_srgb,var(--color-accent)_20%,transparent)] disabled:cursor-not-allowed disabled:opacity-70"
-              />
+              ></input>
               <span>{CONSENT_LABEL}</span>
             </label>
 
