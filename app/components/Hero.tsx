@@ -358,7 +358,7 @@ export default function Hero() {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.25 }}
           >
-            Book a vetted local walker, see photos and live GPS.
+            Book a vetted local walker, see photos and GPS proof.
           </motion.p>
 
           <motion.p
@@ -444,13 +444,13 @@ export default function Hero() {
         </div>
 
         <motion.div
-          className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-xs)] shadow-[var(--elev-2)]"
+          className="overflow-hidden rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-[var(--space-xs)] shadow-[var(--elev-2)] [&_img]:aspect-[4/3] [&_img]:h-auto [&_img]:w-full [&_img]:rounded-[var(--radius-md)] [&_img]:object-cover"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.45 }}
         >
-          <ProjectImage id="hero" className="aspect-[4/3] h-auto w-full rounded-[var(--radius-md)] object-cover"></ProjectImage>
+          <ProjectImage id="hero" />
         </motion.div>
       </div>
 
