@@ -22,7 +22,12 @@ export default function Hero(): JSX.Element {
   };
 
   const openSignupModal = (detail?: { zip: string }): void => {
-    window.dispatchEvent(new CustomEvent("open-signup-modal", { detail }));
+    if (detail) {
+      window.dispatchEvent(new CustomEvent("open-signup-modal", { detail }));
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent("open-signup-modal"));
   };
 
   const handleWaitlistClick = (): void => {
@@ -91,7 +96,7 @@ export default function Hero(): JSX.Element {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.25, ease: "easeOut" }}
-            className="mt-[var(--space-lg)] rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
+            className="mt-[var(--space-lg)] max-w-full rounded-[var(--radius-round)] border border-[var(--color-border)] bg-[var(--color-bg)] px-[var(--space-md)] py-[var(--space-xs)] font-[family-name:var(--font-body)] text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)] shadow-[var(--elev-1)]"
           >
             Launching in Austin, TX: estimated price per 30-min walk: $18–$25.
           </motion.p>
@@ -134,18 +139,11 @@ export default function Hero(): JSX.Element {
               >
                 {isChecking ? "Checking ZIP..." : "Check availability"}
               </button>
-            </div>
-            <div className="mt-[var(--space-xs)] flex flex-col gap-[var(--space-xs)] sm:flex-row sm:items-center sm:justify-between">
-              <p
-                id="hero-zip-helper"
-                className="text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]"
-              >
-                Enter your ZIP to see if we serve your area.
-              </p>
               <div
                 id="hero-zip-status"
+                role="status"
                 aria-live="polite"
-                className="min-h-[30px] text-[length:var(--type-xs)] leading-[18px]"
+                className="min-h-[30px] shrink-0 text-[length:var(--type-xs)] leading-[18px]"
               >
                 {isChecking ? (
                   <span className="inline-flex rounded-[var(--radius-round)] bg-[var(--color-surface)] px-[var(--space-sm)] py-[var(--space-xxs)] font-medium text-[var(--color-text)]">
@@ -162,12 +160,20 @@ export default function Hero(): JSX.Element {
                     Join city waitlist
                   </span>
                 ) : null}
-                {error ? (
-                  <span className="block font-medium text-[var(--color-text)]">
-                    {error}
-                  </span>
-                ) : null}
               </div>
+            </div>
+            <div className="mt-[var(--space-xs)] flex flex-col gap-[var(--space-xs)]">
+              <p
+                id="hero-zip-helper"
+                className="text-[length:var(--type-xs)] leading-[18px] text-[var(--color-muted)]"
+              >
+                Enter your ZIP to see if we serve your area.
+              </p>
+              {error ? (
+                <p className="text-[length:var(--type-xs)] font-medium leading-[18px] text-[var(--color-text)]">
+                  {error}
+                </p>
+              ) : null}
             </div>
           </motion.form>
 
@@ -201,7 +207,7 @@ export default function Hero(): JSX.Element {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="w-full"
         >
-          <ProjectImage id="hero" className="w-full h-auto rounded-[var(--radius-md)] shadow-[var(--elev-2)]"></ProjectImage>
+          <ProjectImage id="hero" className="w-full h-auto rounded-[var(--radius-md)] shadow-[var(--elev-2)]" />
         </motion.div>
       </div>
     </motion.section>
